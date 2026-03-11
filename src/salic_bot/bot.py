@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from playwright.sync_api import Page
 
 from .automation.browser import BrowserManager
+from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
 
 
@@ -62,6 +63,26 @@ class SalicBot:
 
         return sucesso
 
+    def navegar_para_projetos(self) -> bool:
+        """
+        Na tela inicial, abre o menu 'Projeto' e clica em 'Listar Projetos'
+
+        Returns:
+            True se a navegação foi bem-sucedida
+        """
+        if not self.page:
+            raise RuntimeError("Navegador não foi iniciado. Chame iniciar() primeiro.")
+
+        inicio_page = InicioPage(self.page)
+        sucesso = inicio_page.navegar_para_listar_projetos()
+
+        if sucesso:
+            print("🎉 Navegação para projetos realizada com sucesso!")
+        else:
+            print("❌ Falha ao navegar para projetos")
+
+        return sucesso
+
     def fechar(self):
         """Fecha o navegador"""
         print("Fechando navegador...")
@@ -73,12 +94,16 @@ class SalicBot:
         try:
             self.iniciar()
 
-            if self.fazer_login():
-                print("✅ Bot executado com sucesso!")
-                return True
-            else:
+            if not self.fazer_login():
                 print("❌ Falha na execução do bot")
                 return False
+
+            if not self.navegar_para_projetos():
+                print("❌ Falha ao navegar para projetos")
+                return False
+
+            print("✅ Bot executado com sucesso!")
+            return True
 
         except Exception as e:
             print(f"❌ Erro na execução: {str(e)}")
