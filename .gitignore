@@ -1,0 +1,37 @@
+# Bytecode python
+__pycache__/
+*.pyc
+
+# Ambiente virtual
+.venv/
+venv/
+env/
+
+# Artefatos de build
+dist/
+build/
+*.egg-info/
+
+# Ambiente
+.env
+.env.local
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Downloads de navegadores do Playwright
+browsers/
+
+# Screenshots
+screenshots/
+
+# Arquivos gerados por sistemas operacionais
+.DS_Store
+Thumbs.db
