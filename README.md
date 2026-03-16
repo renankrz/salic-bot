@@ -53,5 +53,11 @@ e preencha as variáveis necessárias.
 ### 6. Executar o bot
 
 ```bash
-python3 -m salic_bot
+python3 -m salic_bot <mecanismo> <cnpj do proponente> <pronac>
+```
+
+Exemplo:
+
+```bash
+python3 -m salic_bot Mecenato 11222333000181 112233
 ```

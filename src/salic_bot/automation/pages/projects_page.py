@@ -1,0 +1,133 @@
+"""Page Object para a tela de Projetos do Salic"""
+
+from playwright.sync_api import Page
+
+from ...models.projeto import Projeto
+from ...utils.formatters import formatar_cnpj
+
+
+class ProjectsPage:
+    """Page Object para listar e selecionar projetos no Salic"""
+
+    # Seletores — dropdowns Vuetify (v-select / combobox)
+    # O elemento clicável é o .v-input__slot (pai do input), pois o
+    # .v-select__selections intercepta eventos diretos no <input>.
+    SLOT_MECANISMO = (
+        'div[role="combobox"]:has(input[aria-label="Mecanismo"]) .v-input__slot'
+    )
+    SLOT_PROPONENTES = (
+        'div[role="combobox"]:has(input[aria-label="Proponentes"]) .v-input__slot'
+    )
+
+    # Itens de lista dentro dos dropdowns Vuetify
+    DROPDOWN_ITEM = ".v-select-list .v-list__tile"
+
+    def __init__(self, page: Page):
+        self.page = page
+
+    # ------------------------------------------------------------------
+    # Helpers internos
+    # ------------------------------------------------------------------
+
+    def _normalizar(self, texto: str) -> str:
+        return texto.strip().lower()
+
+    def _selecionar_vuetify_dropdown(self, slot_selector: str, valor_alvo: str):
+        """
+        Abre um dropdown Vuetify clicando no .v-input__slot e escolhe a opção
+        cujo texto contém `valor_alvo` (comparação case-insensitive e com trim).
+        """
+        alvo = self._normalizar(valor_alvo)
+
+        # Clica no slot do campo para abrir o dropdown
+        self.page.click(slot_selector)
+
+        # Aguarda a lista ficar visível
+        self.page.wait_for_selector(f"{self.DROPDOWN_ITEM}:visible", timeout=10000)
+
+        # Itera pelos itens visíveis e clica no que bater
+        items = self.page.locator(self.DROPDOWN_ITEM)
+        count = items.count()
+
+        for i in range(count):
+            item = items.nth(i)
+            texto = self._normalizar(item.inner_text())
+            if alvo in texto:
+                item.click()
+                return
+
+        raise ValueError(
+            f"Opção contendo '{valor_alvo}' não encontrada no dropdown "
+            f"(seletor: {slot_selector})"
+        )
+
+    # ------------------------------------------------------------------
+    # Ações públicas
+    # ------------------------------------------------------------------
+
+    def selecionar_mecanismo(self, mecanismo: str):
+        """Seleciona o mecanismo no primeiro dropdown (ex: 'Mecenato')"""
+        print(f"Selecionando mecanismo: {mecanismo}")
+        self._selecionar_vuetify_dropdown(self.SLOT_MECANISMO, mecanismo)
+
+    def selecionar_proponente(self, cnpj: str):
+        """
+        Seleciona o proponente pelo CNPJ (apenas dígitos).
+        Formata o CNPJ antes de procurar no dropdown.
+        """
+        cnpj_formatado = formatar_cnpj(cnpj)
+        print(f"Selecionando proponente com CNPJ: {cnpj_formatado}")
+        self._selecionar_vuetify_dropdown(self.SLOT_PROPONENTES, cnpj_formatado)
+
+    def clicar_pronac(self, pronac: int):
+        """
+        Na tabela de resultados, clica no link do PRONAC correspondente.
+        A página do projeto será aberta em nova aba.
+        """
+        pronac_str = str(pronac).strip()
+        print(f"Clicando no PRONAC: {pronac_str}")
+
+        # Links de PRONAC na tabela — filtra pelo texto exato
+        links_pronac = self.page.locator('td a[title="Visualizar Projeto"]')
+
+        self.page.wait_for_selector('td a[title="Visualizar Projeto"]', timeout=15000)
+
+        count = links_pronac.count()
+        for i in range(count):
+            link = links_pronac.nth(i)
+            texto = self._normalizar(link.inner_text())
+            if texto == self._normalizar(pronac_str):
+                link.click()
+                return
+
+        raise ValueError(f"PRONAC '{pronac_str}' não encontrado na tabela de projetos")
+
+    def selecionar_projeto(self, projeto: Projeto):
+        """
+        Executa a sequência completa: seleciona mecanismo, proponente e
+        clica no PRONAC para entrar na página do projeto.
+
+        Returns:
+            True se tudo correu bem.
+        """
+        try:
+            self.selecionar_mecanismo(projeto.mecanismo)
+            self.page.wait_for_timeout(500)
+
+            self.selecionar_proponente(projeto.proponente)
+            self.page.wait_for_timeout(1000)
+
+            self.clicar_pronac(projeto.pronac)
+
+            self.page.screenshot(
+                path="screenshots/projeto_selecionado.png", full_page=True
+            )
+            print(f"✅ Projeto PRONAC {projeto.pronac} selecionado com sucesso!")
+            return True
+
+        except Exception as e:
+            print(f"❌ Erro ao selecionar projeto: {str(e)}")
+            self.page.screenshot(
+                path="screenshots/erro_selecionar_projeto.png", full_page=True
+            )
+            return False

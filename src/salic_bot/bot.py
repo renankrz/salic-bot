@@ -8,21 +8,27 @@ from playwright.sync_api import Page
 from .automation.browser import BrowserManager
 from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
+from .automation.pages.projects_page import ProjectsPage
+from .models.projeto import Projeto
 
 
 class SalicBot:
     """Bot principal para automação do Salic"""
 
-    def __init__(self, headless: bool = True, slow_mo: int = 0):
+    def __init__(
+        self, headless: bool = True, slow_mo: int = 0, projeto: Projeto = None
+    ):
         """
         Inicializa o bot
 
         Args:
             headless: Se deve rodar sem interface gráfica
             slow_mo: Delay entre ações em ms (para debug)
+            projeto: Dados do projeto a ser selecionado
         """
         self.browser_manager = BrowserManager(headless=headless, slow_mo=slow_mo)
         self.page: Page = None
+        self.projeto = projeto
 
         # Carrega variáveis de ambiente
         load_dotenv()
@@ -83,6 +89,31 @@ class SalicBot:
 
         return sucesso
 
+    def selecionar_projeto(self) -> bool:
+        """
+        Executa a seleção do projeto na página de projetos.
+
+        Returns:
+            True se o projeto foi selecionado com sucesso.
+        """
+        if not self.page:
+            raise RuntimeError("Navegador não foi iniciado. Chame iniciar() primeiro.")
+
+        projeto = self.projeto
+        print(
+            f"Projeto carregado: PRONAC {projeto.pronac} | {projeto.mecanismo} | {projeto.proponente}"
+        )
+
+        projects_page = ProjectsPage(self.page)
+        sucesso = projects_page.selecionar_projeto(projeto)
+
+        if sucesso:
+            print("🎉 Projeto selecionado com sucesso!")
+        else:
+            print("❌ Falha ao selecionar projeto")
+
+        return sucesso
+
     def fechar(self):
         """Fecha o navegador"""
         print("Fechando navegador...")
@@ -100,6 +131,10 @@ class SalicBot:
 
             if not self.navegar_para_projetos():
                 print("❌ Falha ao navegar para projetos")
+                return False
+
+            if not self.selecionar_projeto():
+                print("❌ Falha ao selecionar projeto")
                 return False
 
             print("✅ Bot executado com sucesso!")
