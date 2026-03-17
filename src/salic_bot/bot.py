@@ -8,6 +8,7 @@ from playwright.sync_api import Page
 from .automation.browser import BrowserManager
 from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
+from .automation.pages.project_page import ProjectPage
 from .automation.pages.projects_page import ProjectsPage
 from .models.projeto import Projeto
 
@@ -28,6 +29,7 @@ class SalicBot:
         """
         self.browser_manager = BrowserManager(headless=headless, slow_mo=slow_mo)
         self.page: Page = None
+        self.projeto_page: Page = None
         self.projeto = projeto
 
         # Carrega variáveis de ambiente
@@ -92,6 +94,7 @@ class SalicBot:
     def selecionar_projeto(self) -> bool:
         """
         Executa a seleção do projeto na página de projetos.
+        Armazena a nova aba aberta em self.projeto_page.
 
         Returns:
             True se o projeto foi selecionado com sucesso.
@@ -105,12 +108,37 @@ class SalicBot:
         )
 
         projects_page = ProjectsPage(self.page)
-        sucesso = projects_page.selecionar_projeto(projeto)
+        nova_pagina = projects_page.selecionar_projeto(projeto)
 
-        if sucesso:
+        if nova_pagina:
+            self.projeto_page = nova_pagina
             print("🎉 Projeto selecionado com sucesso!")
+            return True
         else:
             print("❌ Falha ao selecionar projeto")
+            return False
+
+    def navegar_para_comprovacao_financeira(self) -> bool:
+        """
+        Na página do projeto (nova aba), clica em 'Comprovação Financeira'
+        no menu da esquerda.
+
+        Returns:
+            True se a navegação foi bem-sucedida.
+        """
+        if not self.projeto_page:
+            raise RuntimeError(
+                "Página do projeto não está disponível. "
+                "Chame selecionar_projeto() primeiro."
+            )
+
+        project_page = ProjectPage(self.projeto_page)
+        sucesso = project_page.clicar_comprovacao_financeira()
+
+        if sucesso:
+            print("🎉 Navegação para 'Comprovação Financeira' realizada com sucesso!")
+        else:
+            print("❌ Falha ao navegar para 'Comprovação Financeira'")
 
         return sucesso
 
@@ -136,6 +164,14 @@ class SalicBot:
             if not self.selecionar_projeto():
                 print("❌ Falha ao selecionar projeto")
                 return False
+
+            if not self.navegar_para_comprovacao_financeira():
+                print("❌ Falha ao navegar para Comprovação Financeira")
+                return False
+
+            # Aguarda 5 segundos com o navegador aberto antes de fechar
+            print("Aguardando 5 segundos...")
+            self.projeto_page.wait_for_timeout(5000)
 
             print("✅ Bot executado com sucesso!")
             return True

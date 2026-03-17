@@ -82,7 +82,7 @@ class ProjectsPage:
     def clicar_pronac(self, pronac: int):
         """
         Na tabela de resultados, clica no link do PRONAC correspondente.
-        A página do projeto será aberta em nova aba.
+        A página do projeto é aberta em nova aba; retorna o objeto Page dela.
         """
         pronac_str = str(pronac).strip()
         print(f"Clicando no PRONAC: {pronac_str}")
@@ -97,8 +97,12 @@ class ProjectsPage:
             link = links_pronac.nth(i)
             texto = self._normalizar(link.inner_text())
             if texto == self._normalizar(pronac_str):
-                link.click()
-                return
+                # Captura a nova aba aberta pelo clique
+                with self.page.context.expect_page() as nova_pagina_info:
+                    link.click()
+                nova_pagina = nova_pagina_info.value
+                nova_pagina.wait_for_load_state("networkidle")
+                return nova_pagina
 
         raise ValueError(f"PRONAC '{pronac_str}' não encontrado na tabela de projetos")
 
@@ -108,7 +112,7 @@ class ProjectsPage:
         clica no PRONAC para entrar na página do projeto.
 
         Returns:
-            True se tudo correu bem.
+            O objeto Page da nova aba aberta, ou None em caso de falha.
         """
         try:
             self.selecionar_mecanismo(projeto.mecanismo)
@@ -117,17 +121,14 @@ class ProjectsPage:
             self.selecionar_proponente(projeto.proponente)
             self.page.wait_for_timeout(1000)
 
-            self.clicar_pronac(projeto.pronac)
+            nova_pagina = self.clicar_pronac(projeto.pronac)
 
-            self.page.screenshot(
-                path="screenshots/projeto_selecionado.png", full_page=True
-            )
             print(f"✅ Projeto PRONAC {projeto.pronac} selecionado com sucesso!")
-            return True
+            return nova_pagina
 
         except Exception as e:
             print(f"❌ Erro ao selecionar projeto: {str(e)}")
             self.page.screenshot(
                 path="screenshots/erro_selecionar_projeto.png", full_page=True
             )
-            return False
+            return None
