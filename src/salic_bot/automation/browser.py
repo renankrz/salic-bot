@@ -53,11 +53,36 @@ class BrowserManager:
             timezone_id="America/Sao_Paulo",
         )
 
+        # Garante que novas abas/popups mantenham o tamanho de janela correto
+        self.context.on("page", self._configurar_nova_pagina)
+
         # Configurações da página
         self.page = self.context.new_page()
         self.page.set_default_timeout(30000)  # 30s timeout
 
         return self.page
+
+    def _configurar_nova_pagina(self, page: Page) -> None:
+        """Callback para novas abas/popups: corrige viewport e tamanho da janela OS."""
+        viewport = {"width": 1920, "height": 1080}
+        page.set_viewport_size(viewport)
+        if not self.headless:
+            try:
+                cdp = page.context.new_cdp_session(page)
+                info = cdp.send("Browser.getWindowForTarget")
+                cdp.send(
+                    "Browser.setWindowBounds",
+                    {
+                        "windowId": info["windowId"],
+                        "bounds": {
+                            "width": viewport["width"],
+                            "height": viewport["height"],
+                        },
+                    },
+                )
+                cdp.detach()
+            except Exception:
+                pass  # fallback silencioso caso CDP não esteja disponível
 
     def close(self):
         """Fecha navegador"""
