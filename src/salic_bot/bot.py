@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from playwright.sync_api import Page
 
+from .automation.base_page import BasePage
 from .automation.browser import BrowserManager
 from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
@@ -30,6 +31,7 @@ class SalicBot:
         self.browser_manager = BrowserManager(headless=headless, slow_mo=slow_mo)
         self.page: Page = None
         self.projeto_page: Page = None
+        self.pagina_atual: Page = None
         self.projeto = projeto
 
         # Carrega variáveis de ambiente
@@ -44,6 +46,7 @@ class SalicBot:
         """Inicia o navegador"""
         print("🚀 Iniciando Salic Bot...")
         self.page = self.browser_manager.start()
+        self.pagina_atual = self.page
         print("✅ Navegador iniciado")
 
         # Cria pasta de screenshots
@@ -112,6 +115,7 @@ class SalicBot:
 
         if nova_pagina:
             self.projeto_page = nova_pagina
+            self.pagina_atual = nova_pagina
             print("🎉 Projeto selecionado com sucesso!")
             return True
         else:
@@ -142,6 +146,25 @@ class SalicBot:
 
         return sucesso
 
+    def fazer_logout(self) -> bool:
+        """
+        Realiza o logout através do menu de Perfil da página atual.
+
+        Returns:
+            True se o logout foi realizado com sucesso.
+        """
+        if not self.pagina_atual:
+            raise RuntimeError("Nenhuma página ativa. Chame iniciar() primeiro.")
+
+        sucesso = BasePage(self.pagina_atual).fazer_logout()
+
+        if sucesso:
+            print("🎉 Logout realizado com sucesso!")
+        else:
+            print("❌ Falha ao realizar logout")
+
+        return sucesso
+
     def fechar(self):
         """Fecha o navegador"""
         print("Fechando navegador...")
@@ -169,8 +192,16 @@ class SalicBot:
                 print("❌ Falha ao navegar para Comprovação Financeira")
                 return False
 
-            # Aguarda 5 segundos com o navegador aberto antes de fechar
-            print("Aguardando 5 segundos...")
+            # Aguarda 5 segundos na página de Comprovação Financeira
+            print("Aguardando 5 segundos na página de Comprovação Financeira...")
+            self.projeto_page.wait_for_timeout(5000)
+
+            if not self.fazer_logout():
+                print("❌ Falha ao realizar logout")
+                return False
+
+            # Aguarda 5 segundos após o logout antes de fechar o navegador
+            print("Aguardando 5 segundos antes de fechar o navegador...")
             self.projeto_page.wait_for_timeout(5000)
 
             print("✅ Bot executado com sucesso!")

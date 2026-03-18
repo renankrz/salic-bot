@@ -2,8 +2,10 @@
 
 from playwright.sync_api import Page
 
+from ..base_page import BasePage
 
-class ProjectPage:
+
+class ProjectPage(BasePage):
     """Page Object para a página de visualização de um projeto no Salic.
 
     Esta página é aberta em uma nova aba ao clicar no PRONAC na lista de
@@ -14,7 +16,7 @@ class ProjectPage:
     LINK_COMPROVACAO_FINANCEIRA = "#sidenav li.bold a"
 
     def __init__(self, page: Page):
-        self.page = page
+        super().__init__(page)
 
     def clicar_comprovacao_financeira(self) -> bool:
         """Clica em 'Comprovação Financeira' no menu da esquerda.

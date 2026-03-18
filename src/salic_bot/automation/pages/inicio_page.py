@@ -2,8 +2,10 @@
 
 from playwright.sync_api import Page
 
+from ..base_page import BasePage
 
-class InicioPage:
+
+class InicioPage(BasePage):
     """Page Object para a tela inicial do Salic após o login"""
 
     # Seletores
@@ -11,7 +13,7 @@ class InicioPage:
     LINK_LISTAR_PROJETOS = 'a[title="Ir para Listar Projetos"]'
 
     def __init__(self, page: Page):
-        self.page = page
+        super().__init__(page)
 
     def navegar_para_listar_projetos(self):
         """

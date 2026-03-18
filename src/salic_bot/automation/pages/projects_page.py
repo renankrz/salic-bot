@@ -4,9 +4,10 @@ from playwright.sync_api import Page
 
 from ...models.projeto import Projeto
 from ...utils.formatters import formatar_cnpj
+from ..base_page import BasePage
 
 
-class ProjectsPage:
+class ProjectsPage(BasePage):
     """Page Object para listar e selecionar projetos no Salic"""
 
     # Seletores — dropdowns Vuetify (v-select / combobox)
@@ -23,7 +24,7 @@ class ProjectsPage:
     DROPDOWN_ITEM = ".v-select-list .v-list__tile"
 
     def __init__(self, page: Page):
-        self.page = page
+        super().__init__(page)
 
     # ------------------------------------------------------------------
     # Helpers internos
