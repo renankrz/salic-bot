@@ -7,6 +7,7 @@ from playwright.sync_api import Page
 
 from .automation.base_page import BasePage
 from .automation.browser import BrowserManager
+from .automation.pages.comprovacao_financeira_page import ComprovacaoFinanceiraPage
 from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
 from .automation.pages.project_page import ProjectPage
@@ -154,33 +155,59 @@ class SalicBot:
 
         return sucesso
 
-    def carregar_dados_financeiros(self) -> bool:
+    def navegar_para_comprovantes(self) -> bool:
         """
-        Localiza e lê o CSV de execução financeira a partir da pasta de clientes.
+        Lê a primeira linha do CSV de execução financeira, navega pelo accordion
+        de Comprovação Financeira e clica em 'Comprovar item' para o item de custo.
 
         Returns:
-            True se o CSV foi lido com sucesso.
+            True se o clique foi realizado com sucesso.
         """
+        if not self.projeto_page:
+            raise RuntimeError(
+                "Página do projeto não está disponível. "
+                "Chame selecionar_projeto() primeiro."
+            )
+
         try:
             csv_path = localizar_csv_execucao_financeira(
                 self.clientes_dir,
                 self.projeto.proponente,
                 self.projeto.pronac,
             )
-            print(f"📄 CSV de execução financeira encontrado: {csv_path}")
+            print(f"📄 CSV de execução financeira: {csv_path}")
 
             df = ler_csv(csv_path)
+            linha = df.iloc[0]
 
-            print(f"📊 Dados de execução financeira ({len(df)} linha(s)):")
-            print(df.to_string(index=True))
+            produto = str(linha["Produto"]).strip()
+            etapa = str(linha["Etapa"]).strip()
+            uf = str(linha["UF"]).strip()
+            cidade = str(linha["Cidade"]).strip()
+            item_de_custo = str(linha["Item de Custo"]).strip()
 
-            return True
         except FileNotFoundError as e:
             print(f"❌ Arquivo não encontrado: {e}")
             return False
         except Exception as e:
             print(f"❌ Erro ao carregar dados financeiros: {e}")
             return False
+
+        page = ComprovacaoFinanceiraPage(self.projeto_page)
+        sucesso = page.navegar_e_clicar_comprovar_item(
+            produto=produto,
+            etapa=etapa,
+            uf=uf,
+            cidade=cidade,
+            item_de_custo=item_de_custo,
+        )
+
+        if sucesso:
+            print("🎉 Página de Comprovantes acessada com sucesso!")
+        else:
+            print("❌ Falha ao acessar página de Comprovantes")
+
+        return sucesso
 
     def fazer_logout(self) -> bool:
         """
@@ -228,13 +255,13 @@ class SalicBot:
                 print("❌ Falha ao navegar para Comprovação Financeira")
                 return False
 
-            # Aguarda 5 segundos na página de Comprovação Financeira
-            print("Aguardando 5 segundos na página de Comprovação Financeira...")
-            self.projeto_page.wait_for_timeout(5000)
-
-            if not self.carregar_dados_financeiros():
-                print("❌ Falha ao carregar dados de execução financeira")
+            if not self.navegar_para_comprovantes():
+                print("❌ Falha ao navegar para Comprovantes")
                 return False
+
+            # Aguarda 5 segundos na página de Comprovantes
+            print("Aguardando 5 segundos na página de Comprovantes...")
+            self.projeto_page.wait_for_timeout(5000)
 
             if not self.fazer_logout():
                 print("❌ Falha ao realizar logout")
