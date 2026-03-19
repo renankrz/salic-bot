@@ -30,13 +30,20 @@ def main():
 
     headless = os.getenv("HEADLESS", "False").lower() == "true"
     slow_mo = int(os.getenv("SLOW_MO", "100"))
+    clientes_dir = os.getenv("CLIENTES_DIR")
+
+    if not clientes_dir:
+        print("❌ CLIENTES_DIR não definido no .env")
+        return 1
 
     print("=" * 60)
     print("🎭 Salic Bot - Automação de Prestação de Contas")
     print("=" * 60)
     print()
 
-    bot = SalicBot(headless=headless, slow_mo=slow_mo, projeto=projeto)
+    bot = SalicBot(
+        headless=headless, slow_mo=slow_mo, projeto=projeto, clientes_dir=clientes_dir
+    )
     sucesso = bot.executar()
 
     print()

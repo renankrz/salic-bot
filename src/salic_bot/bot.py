@@ -12,13 +12,19 @@ from .automation.pages.login_page import LoginPage
 from .automation.pages.project_page import ProjectPage
 from .automation.pages.projects_page import ProjectsPage
 from .models.projeto import Projeto
+from .utils.csv_tools import ler_csv
+from .utils.drive_manager import localizar_csv_execucao_financeira
 
 
 class SalicBot:
     """Bot principal para automação do Salic"""
 
     def __init__(
-        self, headless: bool = True, slow_mo: int = 0, projeto: Projeto = None
+        self,
+        headless: bool = True,
+        slow_mo: int = 0,
+        projeto: Projeto = None,
+        clientes_dir: str = None,
     ):
         """
         Inicializa o bot
@@ -27,12 +33,14 @@ class SalicBot:
             headless: Se deve rodar sem interface gráfica
             slow_mo: Delay entre ações em ms (para debug)
             projeto: Dados do projeto a ser selecionado
+            clientes_dir: Caminho para a pasta raiz de clientes
         """
         self.browser_manager = BrowserManager(headless=headless, slow_mo=slow_mo)
         self.page: Page = None
         self.projeto_page: Page = None
         self.pagina_atual: Page = None
         self.projeto = projeto
+        self.clientes_dir = clientes_dir
 
         # Carrega variáveis de ambiente
         load_dotenv()
@@ -146,6 +154,34 @@ class SalicBot:
 
         return sucesso
 
+    def carregar_dados_financeiros(self) -> bool:
+        """
+        Localiza e lê o CSV de execução financeira a partir da pasta de clientes.
+
+        Returns:
+            True se o CSV foi lido com sucesso.
+        """
+        try:
+            csv_path = localizar_csv_execucao_financeira(
+                self.clientes_dir,
+                self.projeto.proponente,
+                self.projeto.pronac,
+            )
+            print(f"📄 CSV de execução financeira encontrado: {csv_path}")
+
+            df = ler_csv(csv_path)
+
+            print(f"📊 Dados de execução financeira ({len(df)} linha(s)):")
+            print(df.to_string(index=True))
+
+            return True
+        except FileNotFoundError as e:
+            print(f"❌ Arquivo não encontrado: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Erro ao carregar dados financeiros: {e}")
+            return False
+
     def fazer_logout(self) -> bool:
         """
         Realiza o logout através do menu de Perfil da página atual.
@@ -195,6 +231,10 @@ class SalicBot:
             # Aguarda 5 segundos na página de Comprovação Financeira
             print("Aguardando 5 segundos na página de Comprovação Financeira...")
             self.projeto_page.wait_for_timeout(5000)
+
+            if not self.carregar_dados_financeiros():
+                print("❌ Falha ao carregar dados de execução financeira")
+                return False
 
             if not self.fazer_logout():
                 print("❌ Falha ao realizar logout")
