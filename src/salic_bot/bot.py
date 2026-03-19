@@ -8,6 +8,7 @@ from playwright.sync_api import Page
 from .automation.base_page import BasePage
 from .automation.browser import BrowserManager
 from .automation.pages.comprovacao_financeira_page import ComprovacaoFinanceiraPage
+from .automation.pages.comprovantes_page import ComprovantesPage
 from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
 from .automation.pages.project_page import ProjectPage
@@ -209,6 +210,74 @@ class SalicBot:
 
         return sucesso
 
+    def abrir_novo_comprovante(self) -> bool:
+        """
+        Na página de Comprovantes, clica no botão '+' para abrir o modal
+        de cadastro de novo comprovante.
+
+        Returns:
+            True se o modal foi aberto com sucesso.
+        """
+        if not self.projeto_page:
+            raise RuntimeError(
+                "Página do projeto não está disponível. "
+                "Chame selecionar_projeto() primeiro."
+            )
+
+        sucesso = ComprovantesPage(self.projeto_page).clicar_botao_adicionar()
+
+        if sucesso:
+            print("🎉 Modal 'Cadastrar novo comprovante' aberto com sucesso!")
+        else:
+            print("❌ Falha ao abrir modal de novo comprovante")
+
+        return sucesso
+
+    def cancelar_novo_comprovante(self) -> bool:
+        """
+        No modal de novo comprovante, clica em 'CANCELAR' para fechá-lo.
+
+        Returns:
+            True se o modal foi fechado com sucesso.
+        """
+        if not self.projeto_page:
+            raise RuntimeError(
+                "Página do projeto não está disponível. "
+                "Chame selecionar_projeto() primeiro."
+            )
+
+        sucesso = ComprovantesPage(self.projeto_page).clicar_cancelar_modal()
+
+        if sucesso:
+            print("🎉 Modal cancelado com sucesso!")
+        else:
+            print("❌ Falha ao cancelar modal")
+
+        return sucesso
+
+    def voltar_de_comprovantes(self) -> bool:
+        """
+        Na página de Comprovantes, clica na seta 'Voltar' para retornar
+        à página de Comprovação Financeira.
+
+        Returns:
+            True se a navegação de volta foi realizada com sucesso.
+        """
+        if not self.projeto_page:
+            raise RuntimeError(
+                "Página do projeto não está disponível. "
+                "Chame selecionar_projeto() primeiro."
+            )
+
+        sucesso = ComprovantesPage(self.projeto_page).clicar_voltar()
+
+        if sucesso:
+            print("🎉 Voltou da página de Comprovantes com sucesso!")
+        else:
+            print("❌ Falha ao voltar da página de Comprovantes")
+
+        return sucesso
+
     def fazer_logout(self) -> bool:
         """
         Realiza o logout através do menu de Perfil da página atual.
@@ -259,8 +328,28 @@ class SalicBot:
                 print("❌ Falha ao navegar para Comprovantes")
                 return False
 
+            if not self.abrir_novo_comprovante():
+                print("❌ Falha ao abrir modal de novo comprovante")
+                return False
+
+            # Aguarda 5 segundos no modal 'Cadastrar novo comprovante'
+            print("Aguardando 5 segundos no modal 'Cadastrar novo comprovante'...")
+            self.projeto_page.wait_for_timeout(5000)
+
+            if not self.cancelar_novo_comprovante():
+                print("❌ Falha ao cancelar novo comprovante")
+                return False
+
             # Aguarda 5 segundos na página de Comprovantes
             print("Aguardando 5 segundos na página de Comprovantes...")
+            self.projeto_page.wait_for_timeout(5000)
+
+            if not self.voltar_de_comprovantes():
+                print("❌ Falha ao voltar da página de Comprovantes")
+                return False
+
+            # Aguarda 5 segundos após voltar
+            print("Aguardando 5 segundos após voltar...")
             self.projeto_page.wait_for_timeout(5000)
 
             if not self.fazer_logout():
