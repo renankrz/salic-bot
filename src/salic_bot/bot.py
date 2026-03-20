@@ -210,6 +210,97 @@ class SalicBot:
 
         return sucesso
 
+    def processar_todos_itens(self) -> bool:
+        """
+        Lê todos os itens de custo do CSV de execução financeira e, para cada um:
+          1. Navega até a rubrica correta e abre a página de Comprovantes.
+          2. Abre o modal de Novo Comprovante.
+          3. Preenche os campos com os dados do CSV.
+          4. Aguarda 5 segundos e tira um screenshot nomeado sequencialmente.
+          5. Cancela o modal.
+          6. Volta para a página de Comprovação Financeira.
+
+        Returns:
+            True se todos os itens foram processados com sucesso.
+        """
+        if not self.projeto_page:
+            raise RuntimeError(
+                "Página do projeto não está disponível. "
+                "Chame selecionar_projeto() primeiro."
+            )
+
+        try:
+            csv_path = localizar_csv_execucao_financeira(
+                self.clientes_dir,
+                self.projeto.proponente,
+                self.projeto.pronac,
+            )
+            print(f"📄 CSV de execução financeira: {csv_path}")
+            df = ler_csv(csv_path)
+            print(f"📋 Total de itens de custo: {len(df)}")
+        except FileNotFoundError as e:
+            print(f"❌ Arquivo não encontrado: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Erro ao carregar dados financeiros: {e}")
+            return False
+
+        cf_page = ComprovacaoFinanceiraPage(self.projeto_page)
+        comp_page = ComprovantesPage(self.projeto_page)
+
+        for idx, linha in df.iterrows():
+            numero_item = idx + 1
+            produto = str(linha["Produto"]).strip()
+            etapa = str(linha["Etapa"]).strip()
+            uf = str(linha["UF"]).strip()
+            cidade = str(linha["Cidade"]).strip()
+            item_de_custo = str(linha["Item de Custo"]).strip()
+
+            print()
+            print(f"─── Item {numero_item}/{len(df)}: {item_de_custo} ───")
+
+            # 1. Navegar até a rubrica e abrir a página de Comprovantes
+            if not cf_page.navegar_e_clicar_comprovar_item(
+                produto=produto,
+                etapa=etapa,
+                uf=uf,
+                cidade=cidade,
+                item_de_custo=item_de_custo,
+            ):
+                print(f"❌ Falha ao navegar para o item {numero_item}")
+                return False
+
+            # 2. Abrir modal de Novo Comprovante
+            if not comp_page.clicar_botao_adicionar():
+                print(f"❌ Falha ao abrir modal no item {numero_item}")
+                return False
+
+            # 3. Preencher campos do modal
+            if not comp_page.preencher_modal(linha):
+                print(f"❌ Falha ao preencher modal no item {numero_item}")
+                return False
+
+            # 4. Aguardar 5 segundos e tirar screenshot
+            print(f"⏳ Aguardando 5 segundos (item {numero_item})...")
+            self.projeto_page.wait_for_timeout(5000)
+            screenshot_path = f"screenshots/item_{numero_item}.png"
+            self.projeto_page.screenshot(path=screenshot_path, full_page=True)
+            print(f"📸 Screenshot salvo: {screenshot_path}")
+
+            # 5. Cancelar modal
+            if not comp_page.clicar_cancelar_modal():
+                print(f"❌ Falha ao cancelar modal no item {numero_item}")
+                return False
+
+            # 6. Voltar para Comprovação Financeira
+            if not comp_page.clicar_voltar():
+                print(f"❌ Falha ao voltar no item {numero_item}")
+                return False
+
+        print()
+        print(f"✅ Todos os {len(df)} itens processados com sucesso!")
+        return True
+
     def abrir_novo_comprovante(self) -> bool:
         """
         Na página de Comprovantes, clica no botão '+' para abrir o modal
@@ -324,32 +415,12 @@ class SalicBot:
                 print("❌ Falha ao navegar para Comprovação Financeira")
                 return False
 
-            if not self.navegar_para_comprovantes():
-                print("❌ Falha ao navegar para Comprovantes")
+            if not self.processar_todos_itens():
+                print("❌ Falha ao processar itens de custo")
                 return False
 
-            if not self.abrir_novo_comprovante():
-                print("❌ Falha ao abrir modal de novo comprovante")
-                return False
-
-            # Aguarda 5 segundos no modal 'Cadastrar novo comprovante'
-            print("Aguardando 5 segundos no modal 'Cadastrar novo comprovante'...")
-            self.projeto_page.wait_for_timeout(5000)
-
-            if not self.cancelar_novo_comprovante():
-                print("❌ Falha ao cancelar novo comprovante")
-                return False
-
-            # Aguarda 5 segundos na página de Comprovantes
-            print("Aguardando 5 segundos na página de Comprovantes...")
-            self.projeto_page.wait_for_timeout(5000)
-
-            if not self.voltar_de_comprovantes():
-                print("❌ Falha ao voltar da página de Comprovantes")
-                return False
-
-            # Aguarda 5 segundos após voltar
-            print("Aguardando 5 segundos após voltar...")
+            # Aguarda 5 segundos na página de Comprovação Financeira
+            print("⏳ Aguardando 5 segundos na página de Comprovação Financeira...")
             self.projeto_page.wait_for_timeout(5000)
 
             if not self.fazer_logout():
@@ -357,7 +428,7 @@ class SalicBot:
                 return False
 
             # Aguarda 5 segundos após o logout antes de fechar o navegador
-            print("Aguardando 5 segundos antes de fechar o navegador...")
+            print("⏳ Aguardando 5 segundos antes de fechar o navegador...")
             self.projeto_page.wait_for_timeout(5000)
 
             print("✅ Bot executado com sucesso!")

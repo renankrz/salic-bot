@@ -15,4 +15,4 @@ def ler_csv(csv_path: str | Path) -> pd.DataFrame:
     Returns:
         DataFrame com os dados do CSV.
     """
-    return pd.read_csv(csv_path)
+    return pd.read_csv(csv_path, encoding="utf-8-sig")
