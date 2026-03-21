@@ -1,5 +1,6 @@
 """Utilitários para manipulação de CSVs"""
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -15,4 +16,6 @@ def ler_csv(csv_path: str | Path) -> pd.DataFrame:
     Returns:
         DataFrame com os dados do CSV.
     """
-    return pd.read_csv(csv_path, encoding="utf-8-sig")
+    df = pd.read_csv(csv_path, encoding="utf-8-sig")
+    df.columns = [re.sub(r"\s*\*$", "", col) for col in df.columns]
+    return df
