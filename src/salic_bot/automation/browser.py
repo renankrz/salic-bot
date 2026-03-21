@@ -10,6 +10,8 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 logger = logging.getLogger(__name__)
 
+from ..config import SCREENSHOTS_DIR
+
 # Garante que PLAYWRIGHT_BROWSERS_PATH esteja em os.environ antes do sync_playwright,
 # resolvendo o caminho relativo em relação à raiz do projeto (onde fica o .env).
 _dotenv_path = find_dotenv()
@@ -121,11 +123,10 @@ class BrowserManager:
     def screenshot(self, name: str) -> str:
         """Tira screenshot para debug"""
         if self.page:
-            screenshots_dir = "screenshots"
-            if not os.path.exists(screenshots_dir):
-                os.makedirs(screenshots_dir)
+            if not os.path.exists(SCREENSHOTS_DIR):
+                os.makedirs(SCREENSHOTS_DIR)
 
-            path = f"{screenshots_dir}/{name}.png"
+            path = os.path.join(SCREENSHOTS_DIR, f"{name}.png")
             self.page.screenshot(path=path, full_page=True)
             return path
         return ""

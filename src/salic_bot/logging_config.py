@@ -6,16 +6,16 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
-def configurar_logging(log_dir: Path | str = "logs") -> None:
+def configurar_logging(logs_dir: Path | str = "logs") -> None:
     """Configura o logging global com saída para arquivo (rotativo) e stdout.
 
     Args:
-        log_dir: Diretório onde o arquivo de log será criado.
+        logs_dir: Diretório onde o arquivo de log será criado.
     """
-    log_dir = Path(log_dir)
-    log_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir = Path(logs_dir)
+    logs_dir.mkdir(parents=True, exist_ok=True)
 
-    log_file = log_dir / "salic_bot.log"
+    log_file = logs_dir / "salic_bot.log"
 
     formato = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     formatter = logging.Formatter(formato)

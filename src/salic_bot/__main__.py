@@ -8,7 +8,7 @@ import sys
 from dotenv import load_dotenv
 
 from .bot import SalicBot
-from .config import LOGS_DIR
+from .config import LOGS_DIR, SCREENSHOTS_DIR
 from .logging_config import configurar_logging
 from .models.projeto import Projeto
 
@@ -19,6 +19,7 @@ def main():
     """Função principal"""
     load_dotenv()
     configurar_logging(logs_dir=LOGS_DIR)
+    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
     parser = argparse.ArgumentParser(
         description="Salic Bot - Automação de Prestação de Contas"

@@ -16,6 +16,7 @@ from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
 from .automation.pages.projeto_page import ProjetoPage
 from .automation.pages.projetos_page import ProjetosPage
+from .config import SCREENSHOTS_DIR
 from .models.projeto import Projeto
 from .utils.csv_tools import ler_csv
 from .utils.drive_manager import (
@@ -66,9 +67,6 @@ class SalicBot:
         self.page = self.browser_manager.start()
         self.pagina_atual = self.page
         logger.info("Navegador iniciado")
-
-        # Cria pasta de screenshots
-        os.makedirs("screenshots", exist_ok=True)
 
     def fazer_login(self) -> bool:
         """
@@ -327,7 +325,7 @@ class SalicBot:
                 continue
 
             # 4. Tirar screenshot
-            screenshot_path = f"screenshots/item_{numero_item}.png"
+            screenshot_path = os.path.join(SCREENSHOTS_DIR, f"item_{numero_item}.png")
             self.projeto_page.screenshot(path=screenshot_path, full_page=True)
             logger.info("Screenshot salvo: %s", screenshot_path)
 
@@ -478,7 +476,9 @@ class SalicBot:
         except Exception as e:
             logger.error("Erro na execução: %s", e, exc_info=True)
             if self.page:
-                self.page.screenshot(path="screenshots/erro_execucao.png")
+                self.page.screenshot(
+                    path=os.path.join(SCREENSHOTS_DIR, "erro_execucao.png")
+                )
             return (0, 0)
 
         finally:

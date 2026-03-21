@@ -1,7 +1,10 @@
 """Page Object para a tela inicial do Salic (comunicados-proponente)"""
 
+import os
+
 from playwright.sync_api import Page
 
+from ...config import SCREENSHOTS_DIR
 from ..base_page import BasePage
 
 
@@ -41,12 +44,12 @@ class InicioPage(BasePage):
             )
 
             self.logger.info("Navegação para 'Listar Projetos' realizada com sucesso!")
-            self.page.screenshot(path="screenshots/listar_projetos.png", full_page=True)
             return True
 
         except Exception as e:
             self.logger.error("Erro ao navegar para 'Listar Projetos': %s", e)
             self.page.screenshot(
-                path="screenshots/erro_listar_projetos.png", full_page=True
+                path=os.path.join(SCREENSHOTS_DIR, "erro_listar_projetos.png"),
+                full_page=True,
             )
             return False

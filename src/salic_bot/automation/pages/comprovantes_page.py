@@ -1,7 +1,10 @@
 """Page Object para a tela de Comprovantes do Salic"""
 
+import os
+
 from playwright.sync_api import Page
 
+from ...config import SCREENSHOTS_DIR
 from ...utils.formatters import (
     formatar_data_br,
     limpar_documento,
@@ -39,14 +42,12 @@ class ComprovantesPage(BasePage):
                 self.MODAL_NOVO_COMPROVANTE, state="visible", timeout=10000
             )
             self.logger.info("Modal 'Cadastrar novo comprovante' aberto!")
-            self.page.screenshot(
-                path="screenshots/modal_novo_comprovante.png", full_page=True
-            )
             return True
         except Exception as e:
             self.logger.error("Erro ao clicar no botão '+': %s", e)
             self.page.screenshot(
-                path="screenshots/erro_botao_adicionar.png", full_page=True
+                path=os.path.join(SCREENSHOTS_DIR, "erro_botao_adicionar.png"),
+                full_page=True,
             )
             return False
 
@@ -63,11 +64,13 @@ class ComprovantesPage(BasePage):
                 self.MODAL_NOVO_COMPROVANTE, state="hidden", timeout=10000
             )
             self.logger.info("Modal fechado!")
-            self.page.screenshot(path="screenshots/apos_cancelar.png", full_page=True)
             return True
         except Exception as e:
             self.logger.error("Erro ao clicar em 'CANCELAR': %s", e)
-            self.page.screenshot(path="screenshots/erro_cancelar.png", full_page=True)
+            self.page.screenshot(
+                path=os.path.join(SCREENSHOTS_DIR, "erro_cancelar.png"),
+                full_page=True,
+            )
             return False
 
     def clicar_voltar(self) -> bool:
@@ -81,11 +84,13 @@ class ComprovantesPage(BasePage):
             self.page.locator(self.BOTAO_VOLTAR).click()
             self.page.wait_for_load_state("networkidle")
             self.logger.info("Voltou para a página anterior!")
-            self.page.screenshot(path="screenshots/apos_voltar.png", full_page=True)
             return True
         except Exception as e:
             self.logger.error("Erro ao clicar em 'Voltar': %s", e)
-            self.page.screenshot(path="screenshots/erro_voltar.png", full_page=True)
+            self.page.screenshot(
+                path=os.path.join(SCREENSHOTS_DIR, "erro_voltar.png"),
+                full_page=True,
+            )
             return False
 
     def preencher_modal(self, linha, arquivo_comprovante: str = None) -> bool:
@@ -207,6 +212,7 @@ class ComprovantesPage(BasePage):
         except Exception as e:
             self.logger.error("Erro ao preencher modal: %s", e)
             self.page.screenshot(
-                path="screenshots/erro_preencher_modal.png", full_page=True
+                path=os.path.join(SCREENSHOTS_DIR, "erro_preencher_modal.png"),
+                full_page=True,
             )
             return False

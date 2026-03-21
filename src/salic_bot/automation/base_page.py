@@ -1,8 +1,11 @@
 """Classe base para todos os Page Objects do Salic"""
 
 import logging
+import os
 
 from playwright.sync_api import Page
+
+from ..config import SCREENSHOTS_DIR
 
 
 class BasePage:
@@ -51,11 +54,13 @@ class BasePage:
             # Aguarda o redirecionamento pós-logout
             self.page.wait_for_load_state("networkidle")
 
-            self.page.screenshot(path="screenshots/logout.png", full_page=True)
             self.logger.info("Logout realizado com sucesso!")
             return True
 
         except Exception as e:
             self.logger.error("Erro ao realizar logout: %s", e)
-            self.page.screenshot(path="screenshots/erro_logout.png", full_page=True)
+            self.page.screenshot(
+                path=os.path.join(SCREENSHOTS_DIR, "erro_logout.png"),
+                full_page=True,
+            )
             return False

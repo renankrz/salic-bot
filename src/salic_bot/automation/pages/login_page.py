@@ -1,9 +1,11 @@
 """Page Object para tela de login do Salic"""
 
+import os
 import time
 
 from playwright.sync_api import Page
 
+from ...config import SCREENSHOTS_DIR
 from ..base_page import BasePage
 
 
@@ -50,9 +52,6 @@ class LoginPage(BasePage):
         self.page.fill(self.INPUT_SENHA, senha)
         time.sleep(0.5)
 
-        # Screenshot antes de clicar
-        self.page.screenshot(path="screenshots/antes_login.png", full_page=True)
-
         # Clica em entrar
         self.page.click(self.BTN_ENTRAR)
 
@@ -64,10 +63,12 @@ class LoginPage(BasePage):
                 timeout=15000,
             )
             self.logger.info("Login realizado com sucesso!")
-            self.page.screenshot(path="screenshots/login_sucesso.png", full_page=True)
             return True
 
         except Exception as e:
             self.logger.error("Erro no login: %s", e)
-            self.page.screenshot(path="screenshots/login_erro.png", full_page=True)
+            self.page.screenshot(
+                path=os.path.join(SCREENSHOTS_DIR, "login_erro.png"),
+                full_page=True,
+            )
             return False

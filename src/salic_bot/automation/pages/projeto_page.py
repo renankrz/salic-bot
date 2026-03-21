@@ -1,7 +1,10 @@
 """Page Object para a tela de um Projeto específico do Salic"""
 
+import os
+
 from playwright.sync_api import Page
 
+from ...config import SCREENSHOTS_DIR
 from ..base_page import BasePage
 
 
@@ -37,15 +40,13 @@ class ProjetoPage(BasePage):
             link.click()
 
             self.page.wait_for_load_state("networkidle")
-            self.page.screenshot(
-                path="screenshots/comprovacao_financeira.png", full_page=True
-            )
             self.logger.info("'Comprovação Financeira' clicado com sucesso!")
             return True
 
         except Exception as e:
             self.logger.error("Erro ao clicar em 'Comprovação Financeira': %s", e)
             self.page.screenshot(
-                path="screenshots/erro_comprovacao_financeira.png", full_page=True
+                path=os.path.join(SCREENSHOTS_DIR, "erro_comprovacao_financeira.png"),
+                full_page=True,
             )
             return False

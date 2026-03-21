@@ -1,7 +1,10 @@
 """Page Object para a tela de Projetos do Salic"""
 
+import os
+
 from playwright.sync_api import Page
 
+from ...config import SCREENSHOTS_DIR
 from ...models.projeto import Projeto
 from ...utils.formatters import formatar_cnpj
 from ..base_page import BasePage
@@ -132,6 +135,7 @@ class ProjetosPage(BasePage):
         except Exception as e:
             self.logger.error("Erro ao selecionar projeto: %s", e)
             self.page.screenshot(
-                path="screenshots/erro_selecionar_projeto.png", full_page=True
+                path=os.path.join(SCREENSHOTS_DIR, "erro_selecionar_projeto.png"),
+                full_page=True,
             )
             return None

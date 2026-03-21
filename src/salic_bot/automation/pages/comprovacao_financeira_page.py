@@ -1,7 +1,10 @@
 """Page Object para a tela de Comprovação Financeira do Salic"""
 
+import os
+
 from playwright.sync_api import Page
 
+from ...config import SCREENSHOTS_DIR
 from ..base_page import BasePage
 
 
@@ -133,9 +136,6 @@ class ComprovacaoFinanceiraPage(BasePage):
                     btn.click()
                     self.page.wait_for_load_state("networkidle")
                     self.logger.info("Clicou em 'Comprovar item'!")
-                    self.page.screenshot(
-                        path="screenshots/comprovantes.png", full_page=True
-                    )
                     return True
 
             raise ValueError(f"Item de custo não encontrado: {item_de_custo!r}")
@@ -143,6 +143,7 @@ class ComprovacaoFinanceiraPage(BasePage):
         except Exception as e:
             self.logger.error("Erro ao navegar e clicar em 'Comprovar item': %s", e)
             self.page.screenshot(
-                path="screenshots/erro_comprovar_item.png", full_page=True
+                path=os.path.join(SCREENSHOTS_DIR, "erro_comprovar_item.png"),
+                full_page=True,
             )
             return False
