@@ -122,7 +122,6 @@ class ComprovantesPage(BasePage):
                 f"#test1 input[name='tipoPessoa'][value='{tipo_pessoa}']"
             )
             radio.click(force=True)
-            self.page.wait_for_timeout(300)
 
             # Preencher campo CPF/CNPJ (usa v-mask; 'type' aciona a máscara corretamente)
             cnpjcpf_input = (
@@ -136,8 +135,14 @@ class ComprovantesPage(BasePage):
             cnpjcpf_input.fill("")
             cnpjcpf_input.type(documento, delay=30)
             # TAB dispara o blur que aciona pesquisarFornecedor()
-            cnpjcpf_input.press("Tab")
-            self.page.wait_for_timeout(1500)
+            try:
+                with self.page.expect_response(
+                    lambda r: "buscar-pessoa" in r.url or "agentecadastrado" in r.url,
+                    timeout=10000,
+                ):
+                    cnpjcpf_input.press("Tab")
+            except Exception:
+                self.logger.debug("pesquisarFornecedor: AJAX response not detected")
 
             # --- Dados do Comprovante de Despesa ---
             tipo_comp = safe_str(linha["Tipo Comprovante"])
@@ -164,7 +169,6 @@ class ComprovantesPage(BasePage):
             if arquivo_comprovante:
                 file_input = self.page.locator("#test1 input[type='file']#arquivo")
                 file_input.set_input_files(arquivo_comprovante)
-                self.page.wait_for_timeout(1000)
                 self.logger.info("  Comprovante enviado: %s", arquivo_comprovante)
 
             # --- Dados do Comprovante Bancário ---

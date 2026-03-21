@@ -25,7 +25,9 @@ class ComprovacaoFinanceiraPage(BasePage):
         if "active" not in classes:
             self.logger.debug("Abrindo seção: %r", header.inner_text().strip())
             header.click()
-            self.page.wait_for_timeout(600)
+            header.locator(
+                "xpath=following-sibling::div[contains(@class,'collapsible-body')]"
+            ).wait_for(state="visible", timeout=5000)
         else:
             self.logger.debug("Seção já aberta: %r", header.inner_text().strip())
 

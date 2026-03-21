@@ -326,9 +326,7 @@ class SalicBot:
                 itens_erro += 1
                 continue
 
-            # 4. Aguardar 5 segundos e tirar screenshot
-            logger.info("Aguardando 5 segundos (item %d)...", numero_item)
-            self.projeto_page.wait_for_timeout(5000)
+            # 4. Tirar screenshot
             screenshot_path = f"screenshots/item_{numero_item}.png"
             self.projeto_page.screenshot(path=screenshot_path, full_page=True)
             logger.info("Screenshot salvo: %s", screenshot_path)
@@ -472,16 +470,9 @@ class SalicBot:
 
             itens_ok, total = self.processar_todos_itens()
 
-            # Aguarda 5 segundos na página de Comprovação Financeira
-            logger.info("Aguardando 5 segundos na página de Comprovação Financeira...")
-            self.projeto_page.wait_for_timeout(5000)
-
             if not self.fazer_logout():
                 logger.error("Falha ao realizar logout")
 
-            # Aguarda 5 segundos após o logout antes de fechar o navegador
-            logger.info("Aguardando 5 segundos antes de fechar o navegador...")
-            self.projeto_page.wait_for_timeout(5000)
             return (itens_ok, total)
 
         except Exception as e:

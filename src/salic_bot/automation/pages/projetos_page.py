@@ -55,6 +55,9 @@ class ProjetosPage(BasePage):
             texto = self._normalizar(item.inner_text())
             if alvo in texto:
                 item.click()
+                self.page.wait_for_selector(
+                    self.DROPDOWN_ITEM, state="hidden", timeout=5000
+                )
                 return
 
         raise ValueError(
@@ -117,10 +120,7 @@ class ProjetosPage(BasePage):
         """
         try:
             self.selecionar_mecanismo(projeto.mecanismo)
-            self.page.wait_for_timeout(500)
-
             self.selecionar_proponente(projeto.proponente)
-            self.page.wait_for_timeout(1000)
 
             nova_pagina = self.clicar_pronac(projeto.pronac)
 
