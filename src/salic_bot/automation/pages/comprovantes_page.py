@@ -71,13 +71,13 @@ class ComprovantesPage(BasePage):
             return False
 
     def clicar_voltar(self) -> bool:
-        """Clica na seta 'Voltar' no topo da página de Comprovantes.
+        """Clica no botão 'Voltar' no topo da página de Comprovantes.
 
         Returns:
             True se a navegação de volta foi realizada com sucesso.
         """
         try:
-            self.logger.info("Clicando na seta 'Voltar'...")
+            self.logger.info("Clicando em 'Voltar'...")
             self.page.locator(self.BOTAO_VOLTAR).click()
             self.page.wait_for_load_state("networkidle")
             self.logger.info("Voltou para a página anterior!")

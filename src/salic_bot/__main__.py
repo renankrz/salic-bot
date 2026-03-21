@@ -54,16 +54,22 @@ def main():
     bot = SalicBot(
         headless=headless, slow_mo=slow_mo, projeto=projeto, clientes_dir=clientes_dir
     )
-    sucesso = bot.executar()
+    itens_ok, total = bot.executar()
 
     logger.info("=" * 60)
-    if sucesso:
-        logger.info("Execução concluída com sucesso!")
+    if itens_ok == total and total > 0:
+        logger.info(
+            "Execução concluída com sucesso! (%d/%d itens incluídos)", itens_ok, total
+        )
+    elif itens_ok > 0:
+        logger.warning(
+            "Execução concluída com erros! (%d/%d itens incluídos)", itens_ok, total
+        )
     else:
-        logger.error("Execução falhou. Verifique os logs.")
+        logger.error("Execução falhou! (%d/%d itens incluídos)", itens_ok, total)
     logger.info("=" * 60)
 
-    return 0 if sucesso else 1
+    return 0 if itens_ok == total and total > 0 else 1
 
 
 if __name__ == "__main__":

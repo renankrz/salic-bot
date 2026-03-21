@@ -27,7 +27,7 @@ from .utils.formatters import safe_str
 
 
 class SalicBot:
-    """Bot principal para automação do Salic"""
+    """Bot para automação do Salic"""
 
     def __init__(
         self,
@@ -223,7 +223,7 @@ class SalicBot:
 
         return sucesso
 
-    def processar_todos_itens(self) -> bool:
+    def processar_todos_itens(self) -> tuple[int, int]:
         """
         Lê todos os itens de custo do CSV de execução financeira e, para cada um:
           1. Navega até a rubrica correta e abre a página de Comprovantes.
@@ -234,7 +234,8 @@ class SalicBot:
           6. Volta para a página de Comprovação Financeira.
 
         Returns:
-            True se todos os itens foram processados com sucesso.
+            Tupla (itens_ok, total) com a contagem de itens processados com
+            sucesso e o total de itens.
         """
         if not self.projeto_page:
             raise RuntimeError(
@@ -260,13 +261,17 @@ class SalicBot:
             logger.info("Pasta de execução financeira: %s", execucao_dir)
         except FileNotFoundError as e:
             logger.error("Arquivo não encontrado: %s", e)
-            return False
+            return (0, 0)
         except Exception as e:
             logger.error("Erro ao carregar dados financeiros: %s", e)
-            return False
+            return (0, 0)
 
         cf_page = ComprovacaoFinanceiraPage(self.projeto_page)
         comp_page = ComprovantesPage(self.projeto_page)
+
+        total = len(df)
+        itens_ok = 0
+        itens_erro = 0
 
         for idx, linha in df.iterrows():
             numero_item = idx + 1
@@ -287,12 +292,15 @@ class SalicBot:
                 item_de_custo=item_de_custo,
             ):
                 logger.error("Falha ao navegar para o item %d", numero_item)
-                return False
+                itens_erro += 1
+                continue
 
             # 2. Abrir modal de Novo Comprovante
             if not comp_page.clicar_botao_adicionar():
                 logger.error("Falha ao abrir modal no item %d", numero_item)
-                return False
+                comp_page.clicar_voltar()
+                itens_erro += 1
+                continue
 
             # 3. Preencher campos do modal
             nr_doc_pagamento = safe_str(linha["Nº Documento Pagamento"])
@@ -303,15 +311,20 @@ class SalicBot:
                     arquivo_comprovante = str(pdf_path)
                     logger.info("PDF do comprovante: %s", arquivo_comprovante)
                 except FileNotFoundError as e:
-                    logger.warning(
-                        "PDF não encontrado para item %d: %s", numero_item, e
-                    )
+                    logger.error("PDF não encontrado para item %d: %s", numero_item, e)
+                    comp_page.clicar_cancelar_modal()
+                    comp_page.clicar_voltar()
+                    itens_erro += 1
+                    continue
 
             if not comp_page.preencher_modal(
                 linha, arquivo_comprovante=arquivo_comprovante
             ):
                 logger.error("Falha ao preencher modal no item %d", numero_item)
-                return False
+                comp_page.clicar_cancelar_modal()
+                comp_page.clicar_voltar()
+                itens_erro += 1
+                continue
 
             # 4. Aguardar 5 segundos e tirar screenshot
             logger.info("Aguardando 5 segundos (item %d)...", numero_item)
@@ -323,15 +336,19 @@ class SalicBot:
             # 5. Cancelar modal
             if not comp_page.clicar_cancelar_modal():
                 logger.error("Falha ao cancelar modal no item %d", numero_item)
-                return False
+                comp_page.clicar_voltar()
+                itens_erro += 1
+                continue
 
             # 6. Voltar para Comprovação Financeira
             if not comp_page.clicar_voltar():
                 logger.error("Falha ao voltar no item %d", numero_item)
-                return False
+                itens_erro += 1
+                continue
 
-        logger.info("Todos os %d itens processados com sucesso!", len(df))
-        return True
+            itens_ok += 1
+
+        return (itens_ok, total)
 
     def abrir_novo_comprovante(self) -> bool:
         """
@@ -426,30 +443,34 @@ class SalicBot:
         self.browser_manager.close()
         logger.info("Navegador fechado")
 
-    def executar(self):
-        """Executa fluxo completo do bot"""
+    def executar(self) -> tuple[int, int]:
+        """Executa fluxo completo do bot.
+
+        Returns:
+            Tupla (itens_ok, total) com a contagem de itens processados
+            com sucesso e o total de itens. Retorna (0, 0) em caso de
+            falha antes do processamento de itens.
+        """
         try:
             self.iniciar()
 
             if not self.fazer_login():
                 logger.error("Falha na execução do bot")
-                return False
+                return (0, 0)
 
             if not self.navegar_para_projetos():
                 logger.error("Falha ao navegar para projetos")
-                return False
+                return (0, 0)
 
             if not self.selecionar_projeto():
                 logger.error("Falha ao selecionar projeto")
-                return False
+                return (0, 0)
 
             if not self.navegar_para_comprovacao_financeira():
                 logger.error("Falha ao navegar para Comprovação Financeira")
-                return False
+                return (0, 0)
 
-            if not self.processar_todos_itens():
-                logger.error("Falha ao processar itens de custo")
-                return False
+            itens_ok, total = self.processar_todos_itens()
 
             # Aguarda 5 segundos na página de Comprovação Financeira
             logger.info("Aguardando 5 segundos na página de Comprovação Financeira...")
@@ -457,20 +478,17 @@ class SalicBot:
 
             if not self.fazer_logout():
                 logger.error("Falha ao realizar logout")
-                return False
 
             # Aguarda 5 segundos após o logout antes de fechar o navegador
             logger.info("Aguardando 5 segundos antes de fechar o navegador...")
             self.projeto_page.wait_for_timeout(5000)
-
-            logger.info("Bot executado com sucesso!")
-            return True
+            return (itens_ok, total)
 
         except Exception as e:
             logger.error("Erro na execução: %s", e, exc_info=True)
             if self.page:
                 self.page.screenshot(path="screenshots/erro_execucao.png")
-            return False
+            return (0, 0)
 
         finally:
             self.fechar()
