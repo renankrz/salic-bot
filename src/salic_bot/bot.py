@@ -290,12 +290,24 @@ class SalicBot:
                 item_de_custo=item_de_custo,
             ):
                 logger.error("Falha ao navegar para o item %d", numero_item)
+                self.projeto_page.screenshot(
+                    path=os.path.join(
+                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_navegacao.png"
+                    ),
+                    full_page=True,
+                )
                 itens_erro += 1
                 continue
 
             # 2. Abrir modal de Novo Comprovante
             if not comp_page.clicar_botao_adicionar():
                 logger.error("Falha ao abrir modal no item %d", numero_item)
+                self.projeto_page.screenshot(
+                    path=os.path.join(
+                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_abrir_modal.png"
+                    ),
+                    full_page=True,
+                )
                 comp_page.clicar_voltar()
                 itens_erro += 1
                 continue
@@ -319,6 +331,12 @@ class SalicBot:
                 linha, arquivo_comprovante=arquivo_comprovante
             ):
                 logger.error("Falha ao preencher modal no item %d", numero_item)
+                self.projeto_page.screenshot(
+                    path=os.path.join(
+                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_preencher.png"
+                    ),
+                    full_page=True,
+                )
                 comp_page.clicar_cancelar_modal()
                 comp_page.clicar_voltar()
                 itens_erro += 1
@@ -332,6 +350,12 @@ class SalicBot:
             # 5. Cancelar modal
             if not comp_page.clicar_cancelar_modal():
                 logger.error("Falha ao cancelar modal no item %d", numero_item)
+                self.projeto_page.screenshot(
+                    path=os.path.join(
+                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_cancelar.png"
+                    ),
+                    full_page=True,
+                )
                 comp_page.clicar_voltar()
                 itens_erro += 1
                 continue
@@ -339,6 +363,12 @@ class SalicBot:
             # 6. Voltar para Comprovação Financeira
             if not comp_page.clicar_voltar():
                 logger.error("Falha ao voltar no item %d", numero_item)
+                self.projeto_page.screenshot(
+                    path=os.path.join(
+                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_voltar.png"
+                    ),
+                    full_page=True,
+                )
                 itens_erro += 1
                 continue
 
@@ -475,6 +505,11 @@ class SalicBot:
 
         except Exception as e:
             logger.error("Erro na execução: %s", e, exc_info=True)
+            if self.projeto_page:
+                self.projeto_page.screenshot(
+                    path=os.path.join(SCREENSHOTS_DIR, "erro_execucao_projeto.png"),
+                    full_page=True,
+                )
             if self.page:
                 self.page.screenshot(
                     path=os.path.join(SCREENSHOTS_DIR, "erro_execucao.png")
