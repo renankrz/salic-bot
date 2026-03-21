@@ -33,18 +33,18 @@ class ComprovantesPage(BasePage):
             True se o modal foi aberto com sucesso.
         """
         try:
-            print("Clicando no botão '+'...")
+            self.logger.info("Clicando no botão '+'...")
             self.page.click(self.BOTAO_ADICIONAR)
             self.page.wait_for_selector(
                 self.MODAL_NOVO_COMPROVANTE, state="visible", timeout=10000
             )
-            print("✅ Modal 'Cadastrar novo comprovante' aberto!")
+            self.logger.info("Modal 'Cadastrar novo comprovante' aberto!")
             self.page.screenshot(
                 path="screenshots/modal_novo_comprovante.png", full_page=True
             )
             return True
         except Exception as e:
-            print(f"❌ Erro ao clicar no botão '+': {e}")
+            self.logger.error("Erro ao clicar no botão '+': %s", e)
             self.page.screenshot(
                 path="screenshots/erro_botao_adicionar.png", full_page=True
             )
@@ -57,16 +57,16 @@ class ComprovantesPage(BasePage):
             True se o modal foi fechado com sucesso.
         """
         try:
-            print("Clicando em 'CANCELAR'...")
+            self.logger.info("Clicando em 'CANCELAR'...")
             self.page.locator(self.BOTAO_CANCELAR).click()
             self.page.wait_for_selector(
                 self.MODAL_NOVO_COMPROVANTE, state="hidden", timeout=10000
             )
-            print("✅ Modal fechado!")
+            self.logger.info("Modal fechado!")
             self.page.screenshot(path="screenshots/apos_cancelar.png", full_page=True)
             return True
         except Exception as e:
-            print(f"❌ Erro ao clicar em 'CANCELAR': {e}")
+            self.logger.error("Erro ao clicar em 'CANCELAR': %s", e)
             self.page.screenshot(path="screenshots/erro_cancelar.png", full_page=True)
             return False
 
@@ -77,14 +77,14 @@ class ComprovantesPage(BasePage):
             True se a navegação de volta foi realizada com sucesso.
         """
         try:
-            print("Clicando na seta 'Voltar'...")
+            self.logger.info("Clicando na seta 'Voltar'...")
             self.page.locator(self.BOTAO_VOLTAR).click()
             self.page.wait_for_load_state("networkidle")
-            print("✅ Voltou para a página anterior!")
+            self.logger.info("Voltou para a página anterior!")
             self.page.screenshot(path="screenshots/apos_voltar.png", full_page=True)
             return True
         except Exception as e:
-            print(f"❌ Erro ao clicar em 'Voltar': {e}")
+            self.logger.error("Erro ao clicar em 'Voltar': %s", e)
             self.page.screenshot(path="screenshots/erro_voltar.png", full_page=True)
             return False
 
@@ -114,7 +114,7 @@ class ComprovantesPage(BasePage):
                 documento = limpar_documento(cnpj_raw)
                 tipo_label = "CNPJ"
 
-            print(f"  {tipo_label}: {documento}")
+            self.logger.info("  %s: %s", tipo_label, documento)
 
             # Selecionar radio CPF ou CNPJ (label intercepta o clique; usar force=True)
             radio = self.page.locator(
@@ -142,38 +142,38 @@ class ComprovantesPage(BasePage):
             tipo_comp = safe_str(linha["Tipo Comprovante"])
             if tipo_comp:
                 self.page.select_option("#tpDocumento", label=tipo_comp)
-                print(f"  Tipo Comprovante: {tipo_comp}")
+                self.logger.info("  Tipo Comprovante: %s", tipo_comp)
 
             data_emissao = formatar_data_br(linha["Data de Emissão"])
             if data_emissao:
                 self.page.fill("#dataEmissao", data_emissao)
-                print(f"  Data de Emissão: {data_emissao}")
+                self.logger.info("  Data de Emissão: %s", data_emissao)
 
             numero = safe_str(linha["Número"])
             if numero:
                 self.page.fill("#nrComprovante", numero)
-                print(f"  Número: {numero}")
+                self.logger.info("  Número: %s", numero)
 
             serie = safe_str(linha["Série"])
             if serie:
                 self.page.fill("#nrSerie", serie)
-                print(f"  Série: {serie}")
+                self.logger.info("  Série: %s", serie)
 
             # --- Dados do Comprovante Bancário ---
             forma_pag = safe_str(linha["Forma de Pagamento"])
             if forma_pag:
                 self.page.select_option("#tpFormaDePagamento", label=forma_pag)
-                print(f"  Forma de Pagamento: {forma_pag}")
+                self.logger.info("  Forma de Pagamento: %s", forma_pag)
 
             data_pag = formatar_data_br(linha["Data do pagamento"])
             if data_pag:
                 self.page.fill("#dtPagamento", data_pag)
-                print(f"  Data do pagamento: {data_pag}")
+                self.logger.info("  Data do pagamento: %s", data_pag)
 
             nr_doc = safe_str(linha["Nº Documento Pagamento"])
             if nr_doc:
                 self.page.fill("#nrDocumentoDePagamento", nr_doc)
-                print(f"  Nº Documento Pagamento: {nr_doc}")
+                self.logger.info("  Nº Documento Pagamento: %s", nr_doc)
 
             # Valor: remove formatação → dígitos em centavos; 'type' aciona a máscara
             valor_centavos = limpar_valor_monetario(linha["Valor"])
@@ -181,19 +181,19 @@ class ComprovantesPage(BasePage):
                 valor_field = self.page.locator("#vlComprovado")
                 valor_field.click(click_count=3)
                 valor_field.type(valor_centavos, delay=30)
-                print(f"  Valor (centavos): {valor_centavos}")
+                self.logger.info("  Valor (centavos): %s", valor_centavos)
 
             # --- Justificativa ---
             justif = safe_str(linha["Justificativa"])
             if justif:
                 self.page.fill("#dsJustificativa", justif)
-                print(f"  Justificativa: {justif[:40]}...")
+                self.logger.info("  Justificativa: %s...", justif[:40])
 
-            print("✅ Modal preenchido com sucesso!")
+            self.logger.info("Modal preenchido com sucesso!")
             return True
 
         except Exception as e:
-            print(f"❌ Erro ao preencher modal: {e}")
+            self.logger.error("Erro ao preencher modal: %s", e)
             self.page.screenshot(
                 path="screenshots/erro_preencher_modal.png", full_page=True
             )

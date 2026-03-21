@@ -22,7 +22,7 @@ class InicioPage(BasePage):
         Returns:
             True se a navegação foi bem-sucedida
         """
-        print("Abrindo menu 'Projeto'...")
+        self.logger.info("Abrindo menu 'Projeto'...")
         try:
             # Aguarda o menu estar disponível
             self.page.wait_for_selector(self.MENU_PROJETO)
@@ -40,12 +40,12 @@ class InicioPage(BasePage):
                 timeout=15000,
             )
 
-            print("✅ Navegação para 'Listar Projetos' realizada com sucesso!")
+            self.logger.info("Navegação para 'Listar Projetos' realizada com sucesso!")
             self.page.screenshot(path="screenshots/listar_projetos.png", full_page=True)
             return True
 
         except Exception as e:
-            print(f"❌ Erro ao navegar para 'Listar Projetos': {str(e)}")
+            self.logger.error("Erro ao navegar para 'Listar Projetos': %s", e)
             self.page.screenshot(
                 path="screenshots/erro_listar_projetos.png", full_page=True
             )

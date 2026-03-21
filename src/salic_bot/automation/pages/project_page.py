@@ -24,7 +24,7 @@ class ProjectPage(BasePage):
         Returns:
             True se o clique foi realizado com sucesso.
         """
-        print("Clicando em 'Comprovação Financeira'...")
+        self.logger.info("Clicando em 'Comprovação Financeira'...")
         try:
             # Aguarda o menu lateral estar carregado
             self.page.wait_for_selector(self.LINK_COMPROVACAO_FINANCEIRA, timeout=15000)
@@ -40,11 +40,11 @@ class ProjectPage(BasePage):
             self.page.screenshot(
                 path="screenshots/comprovacao_financeira.png", full_page=True
             )
-            print("✅ 'Comprovação Financeira' clicado com sucesso!")
+            self.logger.info("'Comprovação Financeira' clicado com sucesso!")
             return True
 
         except Exception as e:
-            print(f"❌ Erro ao clicar em 'Comprovação Financeira': {str(e)}")
+            self.logger.error("Erro ao clicar em 'Comprovação Financeira': %s", e)
             self.page.screenshot(
                 path="screenshots/erro_comprovacao_financeira.png", full_page=True
             )

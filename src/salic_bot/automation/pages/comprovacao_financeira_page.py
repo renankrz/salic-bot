@@ -23,11 +23,11 @@ class ComprovacaoFinanceiraPage(BasePage):
         """
         classes = header.get_attribute("class") or ""
         if "active" not in classes:
-            print(f"  Abrindo seção: {header.inner_text().strip()!r}")
+            self.logger.debug("Abrindo seção: %r", header.inner_text().strip())
             header.click()
             self.page.wait_for_timeout(600)
         else:
-            print(f"  Seção já aberta: {header.inner_text().strip()!r}")
+            self.logger.debug("Seção já aberta: %r", header.inner_text().strip())
 
     def navegar_e_clicar_comprovar_item(
         self,
@@ -50,8 +50,13 @@ class ComprovacaoFinanceiraPage(BasePage):
             True se o clique foi realizado com sucesso.
         """
         try:
-            print(
-                f"🔍 Navegando: {produto!r} > {etapa!r} > {uf!r} > {cidade!r} > {item_de_custo!r}"
+            self.logger.info(
+                "Navegando: %r > %r > %r > %r > %r",
+                produto,
+                etapa,
+                uf,
+                cidade,
+                item_de_custo,
             )
 
             # 1. Localizar e abrir o Produto
@@ -121,11 +126,11 @@ class ComprovacaoFinanceiraPage(BasePage):
                 row = rows.nth(i)
                 cell_text = row.locator("td").first.inner_text().strip()
                 if item_de_custo.strip() in cell_text:
-                    print(f"✅ Item de custo encontrado: {cell_text!r}")
+                    self.logger.info("Item de custo encontrado: %r", cell_text)
                     btn = row.locator('a[title="Comprovar item"]')
                     btn.click()
                     self.page.wait_for_load_state("networkidle")
-                    print("✅ Clicou em 'Comprovar item'!")
+                    self.logger.info("Clicou em 'Comprovar item'!")
                     self.page.screenshot(
                         path="screenshots/comprovantes.png", full_page=True
                     )
@@ -134,7 +139,7 @@ class ComprovacaoFinanceiraPage(BasePage):
             raise ValueError(f"Item de custo não encontrado: {item_de_custo!r}")
 
         except Exception as e:
-            print(f"❌ Erro ao navegar e clicar em 'Comprovar item': {e}")
+            self.logger.error("Erro ao navegar e clicar em 'Comprovar item': %s", e)
             self.page.screenshot(
                 path="screenshots/erro_comprovar_item.png", full_page=True
             )

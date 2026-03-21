@@ -1,11 +1,14 @@
 """Configuração e gerenciamento do navegador Playwright"""
 
+import logging
 import os
 from pathlib import Path
 from typing import Optional
 
 from dotenv import find_dotenv, load_dotenv
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
+
+logger = logging.getLogger(__name__)
 
 # Garante que PLAYWRIGHT_BROWSERS_PATH esteja em os.environ antes do sync_playwright,
 # resolvendo o caminho relativo em relação à raiz do projeto (onde fica o .env).
@@ -33,6 +36,11 @@ class BrowserManager:
 
     def start(self) -> Page:
         """Inicia navegador e retorna página"""
+        logger.info(
+            "Iniciando navegador Chromium (headless=%s, slow_mo=%d ms)",
+            self.headless,
+            self.slow_mo,
+        )
         self.playwright = sync_playwright().start()
 
         # Configurações do navegador
@@ -59,7 +67,7 @@ class BrowserManager:
         # Configurações da página
         self.page = self.context.new_page()
         self.page.set_default_timeout(30000)  # 30s timeout
-
+        logger.info("Navegador iniciado com sucesso")
         return self.page
 
     def _configurar_nova_pagina(self, page: Page) -> None:
@@ -86,12 +94,14 @@ class BrowserManager:
 
     def close(self):
         """Fecha navegador"""
+        logger.info("Encerrando navegador...")
         if self.context:
             self.context.close()
         if self.browser:
             self.browser.close()
         if self.playwright:
             self.playwright.stop()
+        logger.info("Navegador encerrado")
 
     def screenshot(self, name: str) -> str:
         """Tira screenshot para debug"""

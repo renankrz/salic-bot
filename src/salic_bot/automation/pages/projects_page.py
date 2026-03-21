@@ -68,7 +68,7 @@ class ProjectsPage(BasePage):
 
     def selecionar_mecanismo(self, mecanismo: str):
         """Seleciona o mecanismo no primeiro dropdown (ex: 'Mecenato')"""
-        print(f"Selecionando mecanismo: {mecanismo}")
+        self.logger.info("Selecionando mecanismo: %s", mecanismo)
         self._selecionar_vuetify_dropdown(self.SLOT_MECANISMO, mecanismo)
 
     def selecionar_proponente(self, cnpj: str):
@@ -77,7 +77,7 @@ class ProjectsPage(BasePage):
         Formata o CNPJ antes de procurar no dropdown.
         """
         cnpj_formatado = formatar_cnpj(cnpj)
-        print(f"Selecionando proponente com CNPJ: {cnpj_formatado}")
+        self.logger.info("Selecionando proponente com CNPJ: %s", cnpj_formatado)
         self._selecionar_vuetify_dropdown(self.SLOT_PROPONENTES, cnpj_formatado)
 
     def clicar_pronac(self, pronac: int):
@@ -86,7 +86,7 @@ class ProjectsPage(BasePage):
         A página do projeto é aberta em nova aba; retorna o objeto Page dela.
         """
         pronac_str = str(pronac).strip()
-        print(f"Clicando no PRONAC: {pronac_str}")
+        self.logger.info("Clicando no PRONAC: %s", pronac_str)
 
         # Links de PRONAC na tabela — filtra pelo texto exato
         links_pronac = self.page.locator('td a[title="Visualizar Projeto"]')
@@ -124,11 +124,13 @@ class ProjectsPage(BasePage):
 
             nova_pagina = self.clicar_pronac(projeto.pronac)
 
-            print(f"✅ Projeto PRONAC {projeto.pronac} selecionado com sucesso!")
+            self.logger.info(
+                "Projeto PRONAC %s selecionado com sucesso!", projeto.pronac
+            )
             return nova_pagina
 
         except Exception as e:
-            print(f"❌ Erro ao selecionar projeto: {str(e)}")
+            self.logger.error("Erro ao selecionar projeto: %s", e)
             self.page.screenshot(
                 path="screenshots/erro_selecionar_projeto.png", full_page=True
             )

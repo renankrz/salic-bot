@@ -4,8 +4,10 @@ import time
 
 from playwright.sync_api import Page
 
+from ..base_page import BasePage
 
-class LoginPage:
+
+class LoginPage(BasePage):
     """Page Object para login no Salic"""
 
     # URL
@@ -17,16 +19,16 @@ class LoginPage:
     BTN_ENTRAR = 'button[type="submit"]#btConfirmar'
 
     def __init__(self, page: Page):
-        self.page = page
+        super().__init__(page)
 
     def acessar(self):
         """Acessa página de login"""
-        print("Acessando página de login do Salic")
+        self.logger.info("Acessando página de login do Salic")
         self.page.goto(self.URL)
 
         # Aguarda formulário carregar
         self.page.wait_for_selector(self.INPUT_CPF)
-        print("Página de login carregada")
+        self.logger.info("Página de login carregada")
 
     def fazer_login(self, cpf: str, senha: str):
         """
@@ -36,7 +38,7 @@ class LoginPage:
             cpf: CPF do usuário (pode ser com ou sem formatação)
             senha: Senha do usuário
         """
-        print(f"Realizando login com CPF {cpf[:3]}.***.**-**")
+        self.logger.info("Realizando login com CPF %s.***.**-**", cpf[:3])
 
         # Remove formatação do CPF se houver
         cpf_limpo = cpf.replace(".", "").replace("-", "")
@@ -55,17 +57,17 @@ class LoginPage:
         self.page.click(self.BTN_ENTRAR)
 
         # Aguarda navegação para fora da tela de autenticação
-        print("Aguardando login...")
+        self.logger.info("Aguardando login...")
         try:
             self.page.wait_for_url(
                 lambda url: "autenticacao" not in url,
                 timeout=15000,
             )
-            print("✅ Login realizado com sucesso!")
+            self.logger.info("Login realizado com sucesso!")
             self.page.screenshot(path="screenshots/login_sucesso.png", full_page=True)
             return True
 
         except Exception as e:
-            print(f"❌ Erro no login: {str(e)}")
+            self.logger.error("Erro no login: %s", e)
             self.page.screenshot(path="screenshots/login_erro.png", full_page=True)
             return False

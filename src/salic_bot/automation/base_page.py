@@ -1,5 +1,7 @@
 """Classe base para todos os Page Objects do Salic"""
 
+import logging
+
 from playwright.sync_api import Page
 
 
@@ -20,6 +22,7 @@ class BasePage:
 
     def __init__(self, page: Page):
         self.page = page
+        self.logger = logging.getLogger(type(self).__name__)
 
     def fazer_logout(self) -> bool:
         """Realiza o logout através do menu de Perfil no cabeçalho.
@@ -30,7 +33,7 @@ class BasePage:
         Returns:
             True se o logout foi realizado com sucesso.
         """
-        print("Realizando logout via menu 'Perfil'...")
+        self.logger.info("Realizando logout via menu 'Perfil'...")
         try:
             # Abre o dropdown do Perfil
             self.page.click(self.DROPDOWN_PERFIL)
@@ -49,10 +52,10 @@ class BasePage:
             self.page.wait_for_load_state("networkidle")
 
             self.page.screenshot(path="screenshots/logout.png", full_page=True)
-            print("✅ Logout realizado com sucesso!")
+            self.logger.info("Logout realizado com sucesso!")
             return True
 
         except Exception as e:
-            print(f"❌ Erro ao realizar logout: {str(e)}")
+            self.logger.error("Erro ao realizar logout: %s", e)
             self.page.screenshot(path="screenshots/erro_logout.png", full_page=True)
             return False

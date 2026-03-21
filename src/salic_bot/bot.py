@@ -1,9 +1,12 @@
 """Lógica principal do bot"""
 
+import logging
 import os
 
 from dotenv import load_dotenv
 from playwright.sync_api import Page
+
+logger = logging.getLogger(__name__)
 
 from .automation.base_page import BasePage
 from .automation.browser import BrowserManager
@@ -54,10 +57,10 @@ class SalicBot:
 
     def iniciar(self):
         """Inicia o navegador"""
-        print("🚀 Iniciando Salic Bot...")
+        logger.info("Iniciando Salic Bot...")
         self.page = self.browser_manager.start()
         self.pagina_atual = self.page
-        print("✅ Navegador iniciado")
+        logger.info("Navegador iniciado")
 
         # Cria pasta de screenshots
         os.makedirs("screenshots", exist_ok=True)
@@ -78,9 +81,9 @@ class SalicBot:
         sucesso = login_page.fazer_login(self.cpf, self.senha)
 
         if sucesso:
-            print("🎉 Login realizado com sucesso!")
+            logger.info("Login realizado com sucesso!")
         else:
-            print("❌ Falha no login")
+            logger.error("Falha no login")
 
         return sucesso
 
@@ -98,9 +101,9 @@ class SalicBot:
         sucesso = inicio_page.navegar_para_listar_projetos()
 
         if sucesso:
-            print("🎉 Navegação para projetos realizada com sucesso!")
+            logger.info("Navegação para projetos realizada com sucesso!")
         else:
-            print("❌ Falha ao navegar para projetos")
+            logger.error("Falha ao navegar para projetos")
 
         return sucesso
 
@@ -116,8 +119,11 @@ class SalicBot:
             raise RuntimeError("Navegador não foi iniciado. Chame iniciar() primeiro.")
 
         projeto = self.projeto
-        print(
-            f"Projeto carregado: PRONAC {projeto.pronac} | {projeto.mecanismo} | {projeto.proponente}"
+        logger.info(
+            "Projeto carregado: PRONAC %s | %s | %s",
+            projeto.pronac,
+            projeto.mecanismo,
+            projeto.proponente,
         )
 
         projects_page = ProjectsPage(self.page)
@@ -126,10 +132,10 @@ class SalicBot:
         if nova_pagina:
             self.projeto_page = nova_pagina
             self.pagina_atual = nova_pagina
-            print("🎉 Projeto selecionado com sucesso!")
+            logger.info("Projeto selecionado com sucesso!")
             return True
         else:
-            print("❌ Falha ao selecionar projeto")
+            logger.error("Falha ao selecionar projeto")
             return False
 
     def navegar_para_comprovacao_financeira(self) -> bool:
@@ -150,9 +156,11 @@ class SalicBot:
         sucesso = project_page.clicar_comprovacao_financeira()
 
         if sucesso:
-            print("🎉 Navegação para 'Comprovação Financeira' realizada com sucesso!")
+            logger.info(
+                "Navegação para 'Comprovação Financeira' realizada com sucesso!"
+            )
         else:
-            print("❌ Falha ao navegar para 'Comprovação Financeira'")
+            logger.error("Falha ao navegar para 'Comprovação Financeira'")
 
         return sucesso
 
@@ -176,7 +184,7 @@ class SalicBot:
                 self.projeto.proponente,
                 self.projeto.pronac,
             )
-            print(f"📄 CSV de execução financeira: {csv_path}")
+            logger.info("CSV de execução financeira: %s", csv_path)
 
             df = ler_csv(csv_path)
             linha = df.iloc[0]
@@ -188,10 +196,10 @@ class SalicBot:
             item_de_custo = str(linha["Item de Custo"]).strip()
 
         except FileNotFoundError as e:
-            print(f"❌ Arquivo não encontrado: {e}")
+            logger.error("Arquivo não encontrado: %s", e)
             return False
         except Exception as e:
-            print(f"❌ Erro ao carregar dados financeiros: {e}")
+            logger.error("Erro ao carregar dados financeiros: %s", e)
             return False
 
         page = ComprovacaoFinanceiraPage(self.projeto_page)
@@ -204,9 +212,9 @@ class SalicBot:
         )
 
         if sucesso:
-            print("🎉 Página de Comprovantes acessada com sucesso!")
+            logger.info("Página de Comprovantes acessada com sucesso!")
         else:
-            print("❌ Falha ao acessar página de Comprovantes")
+            logger.error("Falha ao acessar página de Comprovantes")
 
         return sucesso
 
@@ -235,14 +243,14 @@ class SalicBot:
                 self.projeto.proponente,
                 self.projeto.pronac,
             )
-            print(f"📄 CSV de execução financeira: {csv_path}")
+            logger.info("CSV de execução financeira: %s", csv_path)
             df = ler_csv(csv_path)
-            print(f"📋 Total de itens de custo: {len(df)}")
+            logger.info("Total de itens de custo: %d", len(df))
         except FileNotFoundError as e:
-            print(f"❌ Arquivo não encontrado: {e}")
+            logger.error("Arquivo não encontrado: %s", e)
             return False
         except Exception as e:
-            print(f"❌ Erro ao carregar dados financeiros: {e}")
+            logger.error("Erro ao carregar dados financeiros: %s", e)
             return False
 
         cf_page = ComprovacaoFinanceiraPage(self.projeto_page)
@@ -256,8 +264,7 @@ class SalicBot:
             cidade = str(linha["Cidade"]).strip()
             item_de_custo = str(linha["Item de Custo"]).strip()
 
-            print()
-            print(f"─── Item {numero_item}/{len(df)}: {item_de_custo} ───")
+            logger.info("─── Item %d/%d: %s ───", numero_item, len(df), item_de_custo)
 
             # 1. Navegar até a rubrica e abrir a página de Comprovantes
             if not cf_page.navegar_e_clicar_comprovar_item(
@@ -267,38 +274,37 @@ class SalicBot:
                 cidade=cidade,
                 item_de_custo=item_de_custo,
             ):
-                print(f"❌ Falha ao navegar para o item {numero_item}")
+                logger.error("Falha ao navegar para o item %d", numero_item)
                 return False
 
             # 2. Abrir modal de Novo Comprovante
             if not comp_page.clicar_botao_adicionar():
-                print(f"❌ Falha ao abrir modal no item {numero_item}")
+                logger.error("Falha ao abrir modal no item %d", numero_item)
                 return False
 
             # 3. Preencher campos do modal
             if not comp_page.preencher_modal(linha):
-                print(f"❌ Falha ao preencher modal no item {numero_item}")
+                logger.error("Falha ao preencher modal no item %d", numero_item)
                 return False
 
             # 4. Aguardar 5 segundos e tirar screenshot
-            print(f"⏳ Aguardando 5 segundos (item {numero_item})...")
+            logger.info("Aguardando 5 segundos (item %d)...", numero_item)
             self.projeto_page.wait_for_timeout(5000)
             screenshot_path = f"screenshots/item_{numero_item}.png"
             self.projeto_page.screenshot(path=screenshot_path, full_page=True)
-            print(f"📸 Screenshot salvo: {screenshot_path}")
+            logger.info("Screenshot salvo: %s", screenshot_path)
 
             # 5. Cancelar modal
             if not comp_page.clicar_cancelar_modal():
-                print(f"❌ Falha ao cancelar modal no item {numero_item}")
+                logger.error("Falha ao cancelar modal no item %d", numero_item)
                 return False
 
             # 6. Voltar para Comprovação Financeira
             if not comp_page.clicar_voltar():
-                print(f"❌ Falha ao voltar no item {numero_item}")
+                logger.error("Falha ao voltar no item %d", numero_item)
                 return False
 
-        print()
-        print(f"✅ Todos os {len(df)} itens processados com sucesso!")
+        logger.info("Todos os %d itens processados com sucesso!", len(df))
         return True
 
     def abrir_novo_comprovante(self) -> bool:
@@ -318,9 +324,9 @@ class SalicBot:
         sucesso = ComprovantesPage(self.projeto_page).clicar_botao_adicionar()
 
         if sucesso:
-            print("🎉 Modal 'Cadastrar novo comprovante' aberto com sucesso!")
+            logger.info("Modal 'Cadastrar novo comprovante' aberto com sucesso!")
         else:
-            print("❌ Falha ao abrir modal de novo comprovante")
+            logger.error("Falha ao abrir modal de novo comprovante")
 
         return sucesso
 
@@ -340,9 +346,9 @@ class SalicBot:
         sucesso = ComprovantesPage(self.projeto_page).clicar_cancelar_modal()
 
         if sucesso:
-            print("🎉 Modal cancelado com sucesso!")
+            logger.info("Modal cancelado com sucesso!")
         else:
-            print("❌ Falha ao cancelar modal")
+            logger.error("Falha ao cancelar modal")
 
         return sucesso
 
@@ -363,9 +369,9 @@ class SalicBot:
         sucesso = ComprovantesPage(self.projeto_page).clicar_voltar()
 
         if sucesso:
-            print("🎉 Voltou da página de Comprovantes com sucesso!")
+            logger.info("Voltou da página de Comprovantes com sucesso!")
         else:
-            print("❌ Falha ao voltar da página de Comprovantes")
+            logger.error("Falha ao voltar da página de Comprovantes")
 
         return sucesso
 
@@ -382,17 +388,17 @@ class SalicBot:
         sucesso = BasePage(self.pagina_atual).fazer_logout()
 
         if sucesso:
-            print("🎉 Logout realizado com sucesso!")
+            logger.info("Logout realizado com sucesso!")
         else:
-            print("❌ Falha ao realizar logout")
+            logger.error("Falha ao realizar logout")
 
         return sucesso
 
     def fechar(self):
         """Fecha o navegador"""
-        print("Fechando navegador...")
+        logger.info("Fechando navegador...")
         self.browser_manager.close()
-        print("✅ Navegador fechado")
+        logger.info("Navegador fechado")
 
     def executar(self):
         """Executa fluxo completo do bot"""
@@ -400,42 +406,42 @@ class SalicBot:
             self.iniciar()
 
             if not self.fazer_login():
-                print("❌ Falha na execução do bot")
+                logger.error("Falha na execução do bot")
                 return False
 
             if not self.navegar_para_projetos():
-                print("❌ Falha ao navegar para projetos")
+                logger.error("Falha ao navegar para projetos")
                 return False
 
             if not self.selecionar_projeto():
-                print("❌ Falha ao selecionar projeto")
+                logger.error("Falha ao selecionar projeto")
                 return False
 
             if not self.navegar_para_comprovacao_financeira():
-                print("❌ Falha ao navegar para Comprovação Financeira")
+                logger.error("Falha ao navegar para Comprovação Financeira")
                 return False
 
             if not self.processar_todos_itens():
-                print("❌ Falha ao processar itens de custo")
+                logger.error("Falha ao processar itens de custo")
                 return False
 
             # Aguarda 5 segundos na página de Comprovação Financeira
-            print("⏳ Aguardando 5 segundos na página de Comprovação Financeira...")
+            logger.info("Aguardando 5 segundos na página de Comprovação Financeira...")
             self.projeto_page.wait_for_timeout(5000)
 
             if not self.fazer_logout():
-                print("❌ Falha ao realizar logout")
+                logger.error("Falha ao realizar logout")
                 return False
 
             # Aguarda 5 segundos após o logout antes de fechar o navegador
-            print("⏳ Aguardando 5 segundos antes de fechar o navegador...")
+            logger.info("Aguardando 5 segundos antes de fechar o navegador...")
             self.projeto_page.wait_for_timeout(5000)
 
-            print("✅ Bot executado com sucesso!")
+            logger.info("Bot executado com sucesso!")
             return True
 
         except Exception as e:
-            print(f"❌ Erro na execução: {str(e)}")
+            logger.error("Erro na execução: %s", e, exc_info=True)
             if self.page:
                 self.page.screenshot(path="screenshots/erro_execucao.png")
             return False
