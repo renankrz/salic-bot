@@ -43,25 +43,41 @@ class BrowserManager:
         )
         self.playwright = sync_playwright().start()
 
-        # Configurações do navegador
+        # Configurações do navegador.
+        # Em modo headed, --start-maximized diz ao Chromium para iniciar com a
+        # janela maximizada pelo SO, sem precisar de tamanho fixo.
+        launch_args = [
+            "--disable-blink-features=AutomationControlled",
+            "--disable-dev-shm-usage",
+        ]
+        if not self.headless:
+            launch_args.append("--start-maximized")
+
         self.browser = self.playwright.chromium.launch(
             headless=self.headless,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--disable-dev-shm-usage",
-            ],
+            args=launch_args,
             slow_mo=self.slow_mo,
         )
 
-        # Configurações do contexto
-        self.context = self.browser.new_context(
-            viewport={"width": 1920, "height": 1080},
+        # Configurações do contexto.
+        # Em modo headed usamos no_viewport=True para desativar a emulação de
+        # viewport do Playwright — sem isso, ele força 1280×720 mesmo com a
+        # janela maximizada, fazendo o conteúdo ficar num retângulo menor.
+        # Com no_viewport=True o conteúdo preenche o tamanho real da janela.
+        # Em modo headless não há janela real, então mantemos um viewport fixo.
+        context_kwargs = dict(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             locale="pt-BR",
             timezone_id="America/Sao_Paulo",
         )
+        if self.headless:
+            context_kwargs["viewport"] = {"width": 1280, "height": 720}
+        else:
+            context_kwargs["no_viewport"] = True
 
-        # Garante que novas abas/popups mantenham o tamanho de janela correto
+        self.context = self.browser.new_context(**context_kwargs)
+
+        # Garante que novas abas/popups também sejam maximizadas
         self.context.on("page", self._configurar_nova_pagina)
 
         # Configurações da página
@@ -71,9 +87,11 @@ class BrowserManager:
         return self.page
 
     def _configurar_nova_pagina(self, page: Page) -> None:
-        """Callback para novas abas/popups: corrige viewport e tamanho da janela OS."""
-        viewport = {"width": 1920, "height": 1080}
-        page.set_viewport_size(viewport)
+        """Callback para novas abas/popups: maximiza a janela do SO via CDP.
+
+        O viewport em modo headed é None (segue o tamanho real da janela),
+        então basta maximizar a janela OS — o viewport se ajusta sozinho.
+        """
         if not self.headless:
             try:
                 cdp = page.context.new_cdp_session(page)
@@ -82,10 +100,7 @@ class BrowserManager:
                     "Browser.setWindowBounds",
                     {
                         "windowId": info["windowId"],
-                        "bounds": {
-                            "width": viewport["width"],
-                            "height": viewport["height"],
-                        },
+                        "bounds": {"windowState": "maximized"},
                     },
                 )
                 cdp.detach()
