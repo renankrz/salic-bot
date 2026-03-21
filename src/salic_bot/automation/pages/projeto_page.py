@@ -5,7 +5,7 @@ from playwright.sync_api import Page
 from ..base_page import BasePage
 
 
-class ProjectPage(BasePage):
+class ProjetoPage(BasePage):
     """Page Object para a página de visualização de um projeto no Salic.
 
     Esta página é aberta em uma nova aba ao clicar no PRONAC na lista de

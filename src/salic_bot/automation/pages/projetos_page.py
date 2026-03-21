@@ -7,7 +7,7 @@ from ...utils.formatters import formatar_cnpj
 from ..base_page import BasePage
 
 
-class ProjectsPage(BasePage):
+class ProjetosPage(BasePage):
     """Page Object para listar e selecionar projetos no Salic"""
 
     # Seletores — dropdowns Vuetify (v-select / combobox)

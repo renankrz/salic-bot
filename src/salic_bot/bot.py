@@ -14,8 +14,8 @@ from .automation.pages.comprovacao_financeira_page import ComprovacaoFinanceiraP
 from .automation.pages.comprovantes_page import ComprovantesPage
 from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
-from .automation.pages.project_page import ProjectPage
-from .automation.pages.projects_page import ProjectsPage
+from .automation.pages.projeto_page import ProjetoPage
+from .automation.pages.projetos_page import ProjetosPage
 from .models.projeto import Projeto
 from .utils.csv_tools import ler_csv
 from .utils.drive_manager import localizar_csv_execucao_financeira
@@ -126,8 +126,8 @@ class SalicBot:
             projeto.proponente,
         )
 
-        projects_page = ProjectsPage(self.page)
-        nova_pagina = projects_page.selecionar_projeto(projeto)
+        projetos_page = ProjetosPage(self.page)
+        nova_pagina = projetos_page.selecionar_projeto(projeto)
 
         if nova_pagina:
             self.projeto_page = nova_pagina
@@ -152,8 +152,8 @@ class SalicBot:
                 "Chame selecionar_projeto() primeiro."
             )
 
-        project_page = ProjectPage(self.projeto_page)
-        sucesso = project_page.clicar_comprovacao_financeira()
+        projeto_page = ProjetoPage(self.projeto_page)
+        sucesso = projeto_page.clicar_comprovacao_financeira()
 
         if sucesso:
             logger.info(
