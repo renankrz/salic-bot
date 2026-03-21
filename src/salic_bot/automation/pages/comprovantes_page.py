@@ -88,11 +88,12 @@ class ComprovantesPage(BasePage):
             self.page.screenshot(path="screenshots/erro_voltar.png", full_page=True)
             return False
 
-    def preencher_modal(self, linha) -> bool:
+    def preencher_modal(self, linha, arquivo_comprovante: str = None) -> bool:
         """Preenche os campos do modal de Novo Comprovante com os dados de uma linha do CSV.
 
         Args:
             linha: Linha do DataFrame (pandas Series) com os dados do comprovante.
+            arquivo_comprovante: Caminho absoluto para o arquivo PDF a ser enviado como comprovante.
 
         Returns:
             True se o modal foi preenchido com sucesso.
@@ -158,6 +159,13 @@ class ComprovantesPage(BasePage):
             if serie:
                 self.page.fill("#nrSerie", serie)
                 self.logger.info("  Série: %s", serie)
+
+            # --- Upload do Comprovante ---
+            if arquivo_comprovante:
+                file_input = self.page.locator("#test1 input[type='file']#arquivo")
+                file_input.set_input_files(arquivo_comprovante)
+                self.page.wait_for_timeout(1000)
+                self.logger.info("  Comprovante enviado: %s", arquivo_comprovante)
 
             # --- Dados do Comprovante Bancário ---
             forma_pag = safe_str(linha["Forma de Pagamento"])

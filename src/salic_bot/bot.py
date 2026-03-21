@@ -18,7 +18,12 @@ from .automation.pages.projeto_page import ProjetoPage
 from .automation.pages.projetos_page import ProjetosPage
 from .models.projeto import Projeto
 from .utils.csv_tools import ler_csv
-from .utils.drive_manager import localizar_csv_execucao_financeira
+from .utils.drive_manager import (
+    encontrar_pdf_comprovante,
+    localizar_csv_execucao_financeira,
+    localizar_pasta_execucao,
+)
+from .utils.formatters import safe_str
 
 
 class SalicBot:
@@ -246,6 +251,13 @@ class SalicBot:
             logger.info("CSV de execução financeira: %s", csv_path)
             df = ler_csv(csv_path)
             logger.info("Total de itens de custo: %d", len(df))
+
+            execucao_dir = localizar_pasta_execucao(
+                self.clientes_dir,
+                self.projeto.proponente,
+                self.projeto.pronac,
+            )
+            logger.info("Pasta de execução financeira: %s", execucao_dir)
         except FileNotFoundError as e:
             logger.error("Arquivo não encontrado: %s", e)
             return False
@@ -283,7 +295,21 @@ class SalicBot:
                 return False
 
             # 3. Preencher campos do modal
-            if not comp_page.preencher_modal(linha):
+            nr_doc_pagamento = safe_str(linha["Nº Documento Pagamento"])
+            arquivo_comprovante = None
+            if nr_doc_pagamento:
+                try:
+                    pdf_path = encontrar_pdf_comprovante(execucao_dir, nr_doc_pagamento)
+                    arquivo_comprovante = str(pdf_path)
+                    logger.info("PDF do comprovante: %s", arquivo_comprovante)
+                except FileNotFoundError as e:
+                    logger.warning(
+                        "PDF não encontrado para item %d: %s", numero_item, e
+                    )
+
+            if not comp_page.preencher_modal(
+                linha, arquivo_comprovante=arquivo_comprovante
+            ):
                 logger.error("Falha ao preencher modal no item %d", numero_item)
                 return False
 

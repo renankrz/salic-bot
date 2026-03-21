@@ -91,6 +91,50 @@ def encontrar_csv(execucao_dir: Path) -> Path:
     return csvs[0]
 
 
+def encontrar_pasta_anexos(execucao_dir: Path) -> Path:
+    """
+    Dentro de execucao_dir, encontra a pasta cujo nome contém o termo 'anexo'
+    (case-insensitive).
+
+    Args:
+        execucao_dir: Caminho para a pasta de execução financeira.
+
+    Returns:
+        Path para a pasta de anexos.
+
+    Raises:
+        FileNotFoundError: Se nenhuma pasta com 'anexo' no nome for encontrada.
+    """
+    for pasta in execucao_dir.iterdir():
+        if pasta.is_dir() and "anexo" in pasta.name.lower():
+            return pasta
+    raise FileNotFoundError(f"Nenhuma pasta de anexos encontrada em '{execucao_dir}'")
+
+
+def encontrar_pdf_comprovante(execucao_dir: Path, nr_documento: str) -> Path:
+    """
+    Dentro de execucao_dir, encontra o PDF de comprovante de pagamento
+    na subpasta de anexos.
+
+    Args:
+        execucao_dir: Caminho para a pasta de execução financeira.
+        nr_documento: Número do documento de pagamento (sem extensão).
+
+    Returns:
+        Path para o arquivo PDF.
+
+    Raises:
+        FileNotFoundError: Se o PDF não for encontrado.
+    """
+    pasta_anexos = encontrar_pasta_anexos(execucao_dir)
+    pdf_path = pasta_anexos / f"{nr_documento}.pdf"
+    if not pdf_path.is_file():
+        raise FileNotFoundError(
+            f"PDF '{nr_documento}.pdf' não encontrado em '{pasta_anexos}'"
+        )
+    return pdf_path
+
+
 def localizar_csv_execucao_financeira(
     clientes_dir: str | Path, cnpj: str, pronac: int | str
 ) -> Path:
@@ -108,7 +152,24 @@ def localizar_csv_execucao_financeira(
     Returns:
         Path para o CSV de execução financeira.
     """
+    pasta_execucao = localizar_pasta_execucao(clientes_dir, cnpj, pronac)
+    return encontrar_csv(pasta_execucao)
+
+
+def localizar_pasta_execucao(
+    clientes_dir: str | Path, cnpj: str, pronac: int | str
+) -> Path:
+    """
+    Retorna o Path da pasta de execução financeira (pasta '04*').
+
+    Args:
+        clientes_dir: Caminho para a pasta raiz de clientes.
+        cnpj: CNPJ do proponente (somente dígitos).
+        pronac: PRONAC do projeto.
+
+    Returns:
+        Path para a pasta de execução financeira.
+    """
     pasta_cliente = encontrar_pasta_cliente(clientes_dir, cnpj)
     pasta_projeto = encontrar_pasta_projeto(pasta_cliente, pronac)
-    pasta_execucao = encontrar_pasta_execucao_financeira(pasta_projeto)
-    return encontrar_csv(pasta_execucao)
+    return encontrar_pasta_execucao_financeira(pasta_projeto)
