@@ -42,6 +42,19 @@ def formatar_data_br(valor) -> str:
     return str(valor).strip()
 
 
+def formatar_data_arquivo(data: str) -> str:
+    """
+    Converte data no formato D/M/YYYY para YYYY.mm.DD (usado em nomes de arquivo).
+
+    Exemplos:
+        "10/1/2025"  -> "2025.01.10"
+        "5/12/2024"  -> "2024.12.05"
+    """
+    partes = data.strip().split("/")
+    dia, mes, ano = partes
+    return f"{ano}.{int(mes):02d}.{int(dia):02d}"
+
+
 def limpar_valor_monetario(valor) -> str:
     """
     Remove formatação de moeda e retorna apenas dígitos (valor em centavos).

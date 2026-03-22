@@ -3,6 +3,8 @@
 import logging
 from pathlib import Path
 
+from ..utils.formatters import formatar_data_arquivo
+
 logger = logging.getLogger(__name__)
 
 
@@ -121,10 +123,7 @@ def localizar_comprovante(execucao_dir: Path, data_pagamento: str, numero: str) 
             f"Nenhuma pasta com 'nfs' no nome encontrada em '{execucao_dir}'"
         )
 
-    # Converter data D/M/YYYY para YYYY.mm.DD
-    partes = data_pagamento.strip().split("/")
-    dia, mes, ano = partes
-    data_formatada = f"{ano}.{int(mes):02d}.{int(dia):02d}"
+    data_formatada = formatar_data_arquivo(data_pagamento)
 
     termo_data = f"{data_formatada}_"
     termo_numero = f"_{numero}_"
