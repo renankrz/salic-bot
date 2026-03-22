@@ -313,13 +313,13 @@ class SalicBot:
                 continue
 
             # 3. Preencher campos do modal
-            data_pagamento = safe_str(linha["Data do pagamento"])
+            data_emissao = safe_str(linha["Data de Emissão"])
             numero_nf = safe_str(linha["Número"])
             arquivo_comprovante = None
-            if data_pagamento and numero_nf:
+            if data_emissao and numero_nf:
                 try:
                     pdf_path = localizar_comprovante(
-                        execucao_dir, data_pagamento, numero_nf
+                        execucao_dir, data_emissao, numero_nf
                     )
                     arquivo_comprovante = str(pdf_path)
                     logger.info("PDF do comprovante: %s", arquivo_comprovante)

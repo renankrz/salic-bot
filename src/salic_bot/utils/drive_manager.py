@@ -94,16 +94,16 @@ def localizar_csv_execucao_financeira(
     return csvs[0]
 
 
-def localizar_comprovante(execucao_dir: Path, data_pagamento: str, numero: str) -> Path:
+def localizar_comprovante(execucao_dir: Path, data_emissao: str, numero: str) -> Path:
     """
     Localiza o PDF de comprovante dentro da pasta de comprovantes.
 
-    Busca em TODAS as subpastas (meses de pagamento) dentro da pasta de comprovantes
+    Busca em TODAS as subpastas (meses de emissão) dentro da pasta de comprovantes
     por um arquivo cujo nome comece com '<YYYY.mm.DD>_<qualquer coisa>_<numero>_'.
 
     Args:
         execucao_dir: Caminho para a pasta de execução financeira.
-        data_pagamento: Data de pagamento no formato 'D/M/YYYY' (ex: '10/1/2025').
+        data_emissao: Data de emissão no formato 'D/M/YYYY' (ex: '10/1/2025').
         numero: Número do comprovante (ex: '35').
 
     Returns:
@@ -123,7 +123,7 @@ def localizar_comprovante(execucao_dir: Path, data_pagamento: str, numero: str) 
             f"Nenhuma pasta com 'nfs' no nome encontrada em '{execucao_dir}'"
         )
 
-    data_formatada = formatar_data_arquivo(data_pagamento)
+    data_formatada = formatar_data_arquivo(data_emissao)
 
     termo_data = f"{data_formatada}_"
     termo_numero = f"_{numero}_"
