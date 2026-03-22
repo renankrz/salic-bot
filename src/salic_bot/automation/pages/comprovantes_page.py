@@ -5,12 +5,8 @@ import os
 from playwright.sync_api import Page
 
 from ...config import SCREENSHOTS_DIR
-from ...utils.formatters import (
-    formatar_data_br,
-    limpar_documento,
-    limpar_valor_monetario,
-    safe_str,
-)
+from ...utils.formatters import (formatar_data_br, limpar_documento,
+                                 limpar_valor_monetario, safe_str)
 from ..base_page import BasePage
 
 

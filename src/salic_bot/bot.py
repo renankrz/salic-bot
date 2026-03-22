@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 from .automation.base_page import BasePage
 from .automation.browser import BrowserManager
-from .automation.pages.comprovacao_financeira_page import ComprovacaoFinanceiraPage
+from .automation.pages.comprovacao_financeira_page import \
+    ComprovacaoFinanceiraPage
 from .automation.pages.comprovantes_page import ComprovantesPage
 from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
@@ -19,11 +20,9 @@ from .automation.pages.projetos_page import ProjetosPage
 from .config import SCREENSHOTS_DIR
 from .models.projeto import Projeto
 from .utils.csv_tools import ler_csv
-from .utils.drive_manager import (
-    encontrar_pdf_comprovante,
-    localizar_csv_execucao_financeira,
-    localizar_pasta_execucao,
-)
+from .utils.drive_manager import (encontrar_comprovante,
+                                  localizar_csv_execucao_financeira,
+                                  localizar_pasta_execucao)
 from .utils.formatters import safe_str
 
 
@@ -313,15 +312,22 @@ class SalicBot:
                 continue
 
             # 3. Preencher campos do modal
-            nr_doc_pagamento = safe_str(linha["Nº Documento Pagamento"])
+            data_pagamento = safe_str(linha["Data do pagamento"])
+            numero_nf = safe_str(linha["Número"])
             arquivo_comprovante = None
-            if nr_doc_pagamento:
+            if data_pagamento and numero_nf:
                 try:
-                    pdf_path = encontrar_pdf_comprovante(execucao_dir, nr_doc_pagamento)
+                    pdf_path = encontrar_comprovante(
+                        execucao_dir, data_pagamento, numero_nf
+                    )
                     arquivo_comprovante = str(pdf_path)
                     logger.info("PDF do comprovante: %s", arquivo_comprovante)
                 except FileNotFoundError as e:
-                    logger.error("PDF não encontrado para item %d: %s", numero_item, e)
+                    logger.error(
+                        "Comprovante não encontrado para item %d: %s",
+                        numero_item,
+                        e,
+                    )
                     comp_page.clicar_cancelar_modal()
                     comp_page.clicar_voltar()
                     itens_erro += 1

@@ -1,6 +1,9 @@
 """Utilitários para navegação na estrutura de pastas de clientes"""
 
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def encontrar_pasta_cliente(clientes_dir: str | Path, cnpj: str) -> Path:
@@ -91,48 +94,85 @@ def encontrar_csv(execucao_dir: Path) -> Path:
     return csvs[0]
 
 
-def encontrar_pasta_anexos(execucao_dir: Path) -> Path:
+def encontrar_pasta_comprovantes(execucao_dir: Path) -> Path:
     """
-    Dentro de execucao_dir, encontra a pasta cujo nome contém o termo 'anexo'
+    Dentro de execucao_dir, encontra a pasta cujo nome contém o termo 'nfs'
     (case-insensitive).
 
     Args:
         execucao_dir: Caminho para a pasta de execução financeira.
 
     Returns:
-        Path para a pasta de anexos.
+        Path para a pasta de comprovantes.
 
     Raises:
-        FileNotFoundError: Se nenhuma pasta com 'anexo' no nome for encontrada.
+        FileNotFoundError: Se nenhuma pasta com 'nfs' no nome for encontrada.
     """
     for pasta in execucao_dir.iterdir():
-        if pasta.is_dir() and "anexo" in pasta.name.lower():
+        if pasta.is_dir() and "nfs" in pasta.name.lower():
             return pasta
-    raise FileNotFoundError(f"Nenhuma pasta de anexos encontrada em '{execucao_dir}'")
+    raise FileNotFoundError(
+        f"Nenhuma pasta com 'nfs' no nome encontrada em '{execucao_dir}'"
+    )
 
 
-def encontrar_pdf_comprovante(execucao_dir: Path, nr_documento: str) -> Path:
+def encontrar_comprovante(execucao_dir: Path, data_pagamento: str, numero: str) -> Path:
     """
-    Dentro de execucao_dir, encontra o PDF de comprovante de pagamento
-    na subpasta de anexos.
+    Localiza o PDF de comprovante dentro da pasta de comprovantes.
+
+    Busca em TODAS as subpastas (meses de pagamento) dentro da pasta de comprovantes
+    por um arquivo cujo nome comece com '<YYYY.mm.DD>_<qualquer coisa>_<numero>_'.
 
     Args:
         execucao_dir: Caminho para a pasta de execução financeira.
-        nr_documento: Número do documento de pagamento (sem extensão).
+        data_pagamento: Data de pagamento no formato 'D/M/YYYY' (ex: '10/1/2025').
+        numero: Número do comprovante (ex: '35').
 
     Returns:
-        Path para o arquivo PDF.
+        Path para o arquivo PDF encontrado.
 
     Raises:
-        FileNotFoundError: Se o PDF não for encontrado.
+        FileNotFoundError: Se nenhum ou mais de um match for encontrado.
     """
-    pasta_anexos = encontrar_pasta_anexos(execucao_dir)
-    pdf_path = pasta_anexos / f"{nr_documento}.pdf"
-    if not pdf_path.is_file():
+    pasta_comprovantes = encontrar_pasta_comprovantes(execucao_dir)
+
+    # Converter data D/M/YYYY para YYYY.mm.DD
+    partes = data_pagamento.strip().split("/")
+    dia, mes, ano = partes
+    data_formatada = f"{ano}.{int(mes):02d}.{int(dia):02d}"
+
+    termo_data = f"{data_formatada}_"
+    termo_numero = f"_{numero}_"
+    logger.debug(
+        "Buscando comprovante com data %s e número %s", termo_data, termo_numero
+    )
+
+    matches = []
+    for pasta_mes in pasta_comprovantes.iterdir():
+        if not pasta_mes.is_dir():
+            continue
+        for arquivo in pasta_mes.iterdir():
+            if (
+                arquivo.is_file()
+                and arquivo.name.startswith(termo_data)
+                and termo_numero in arquivo.name
+            ):
+                matches.append(arquivo)
+
+    if len(matches) == 1:
+        logger.info("Comprovante encontrado: %s", matches[0])
+        return matches[0]
+    elif len(matches) == 0:
         raise FileNotFoundError(
-            f"PDF '{nr_documento}.pdf' não encontrado em '{pasta_anexos}'"
+            f"Nenhum comprovante encontrado com data '{termo_data}' "
+            f"e número '{termo_numero}' em '{pasta_comprovantes}'"
         )
-    return pdf_path
+    else:
+        nomes = [m.name for m in matches]
+        raise FileNotFoundError(
+            f"Múltiplos comprovantes encontrados com data '{termo_data}' "
+            f"e número '{termo_numero}': {nomes}"
+        )
 
 
 def localizar_csv_execucao_financeira(
