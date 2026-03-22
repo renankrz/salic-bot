@@ -7,7 +7,7 @@ from playwright.sync_api import Page
 from ...config import SCREENSHOTS_DIR
 from ...utils.formatters import (
     formatar_data_br,
-    limpar_documento,
+    limpar_ni,
     limpar_valor_monetario,
     safe_str,
 )
@@ -113,14 +113,14 @@ class ComprovantesPage(BasePage):
 
             if tem_cpf:
                 tipo_pessoa = "1"
-                documento = limpar_documento(cpf_raw)
+                ni = limpar_ni(cpf_raw)
                 tipo_label = "CPF"
             else:
                 tipo_pessoa = "2"
-                documento = limpar_documento(cnpj_raw)
+                ni = limpar_ni(cnpj_raw)
                 tipo_label = "CNPJ"
 
-            self.logger.info("  %s: %s", tipo_label, documento)
+            self.logger.info("  %s: %s", tipo_label, ni)
 
             # Selecionar radio CPF ou CNPJ (label intercepta o clique; usar force=True)
             radio = self.page.locator(
@@ -138,7 +138,7 @@ class ComprovantesPage(BasePage):
             )
             cnpjcpf_input.click()
             cnpjcpf_input.fill("")
-            cnpjcpf_input.type(documento, delay=30)
+            cnpjcpf_input.type(ni, delay=30)
             # TAB dispara o blur que aciona pesquisarFornecedor()
             try:
                 with self.page.expect_response(

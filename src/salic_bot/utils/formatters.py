@@ -17,9 +17,8 @@ def formatar_cnpj(cnpj: str) -> str:
     return f"{digits[0:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:14]}"
 
 
-def limpar_documento(valor) -> str:
-    """Remove formatação de CPF/CNPJ, retorna apenas dígitos."""
-    import pandas as pd
+def limpar_ni(valor) -> str:
+    """Remove formatação de um número identificador (CPF/CNPJ), retorna apenas dígitos."""
 
     if _eh_vazio(valor):
         return ""
