@@ -1,4 +1,4 @@
-"""Entry point para execução via CLI"""
+"""Entry point para execução via CLI ou GUI"""
 
 import argparse
 import logging
@@ -15,20 +15,8 @@ from .models.projeto import Projeto
 logger = logging.getLogger(__name__)
 
 
-def main():
-    """Função principal"""
-    load_dotenv()
-    configurar_logging(logs_dir=LOGS_DIR)
-    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
-
-    parser = argparse.ArgumentParser(
-        description="Salic Bot - Automação de Prestação de Contas"
-    )
-    parser.add_argument("mecanismo", help="Mecanismo do projeto (ex: Mecenato)")
-    parser.add_argument("proponente", help="CNPJ do proponente (somente dígitos)")
-    parser.add_argument("pronac", type=int, help="PRONAC do projeto")
-    args = parser.parse_args()
-
+def _run_cli(args: argparse.Namespace) -> int:
+    """Executa o bot via linha de comando"""
     projeto = Projeto(
         mecanismo=args.mecanismo,
         proponente=args.proponente,
@@ -72,6 +60,31 @@ def main():
     logger.info("=" * 60)
 
     return 0 if itens_ok == total and total > 0 else 1
+
+
+def main():
+    """Função principal — sem argumentos abre a GUI, com argumentos usa CLI"""
+    load_dotenv()
+
+    # Se não houver argumentos posicionais, abre a GUI
+    if len(sys.argv) == 1:
+        from .gui.main_window import iniciar_gui
+
+        return iniciar_gui()
+
+    # CLI
+    configurar_logging(logs_dir=LOGS_DIR)
+    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+
+    parser = argparse.ArgumentParser(
+        description="Salic Bot - Automação de Prestação de Contas"
+    )
+    parser.add_argument("mecanismo", help="Mecanismo do projeto (ex: Mecenato)")
+    parser.add_argument("proponente", help="CNPJ do proponente (somente dígitos)")
+    parser.add_argument("pronac", type=int, help="PRONAC do projeto")
+    args = parser.parse_args()
+
+    return _run_cli(args)
 
 
 if __name__ == "__main__":
