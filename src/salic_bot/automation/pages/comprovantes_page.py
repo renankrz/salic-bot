@@ -23,11 +23,15 @@ class ComprovantesPage(BasePage):
 
     BOTAO_ADICIONAR = ".fixed-action-btn a.btn-floating"
     MODAL_NOVO_COMPROVANTE = "#modal1"
+    BOTAO_SALVAR = "#test1 button.btn:not(.white)"
     BOTAO_CANCELAR = "#test1 button.btn.white.black-text"
     BOTAO_VOLTAR = "#app-comprovante .page-title a"
 
+    ALERT_JUSTIFICATIVA = "Valor acima do permitido, justificar acrescimo."
+
     def __init__(self, page: Page):
         super().__init__(page)
+        self.ultimo_alert: str | None = None
 
     def clicar_botao_adicionar(self) -> bool:
         """Clica no botão '+' para abrir o modal de novo comprovante.
@@ -50,6 +54,54 @@ class ComprovantesPage(BasePage):
                 full_page=True,
             )
             return False
+
+    def clicar_salvar_modal(self) -> bool:
+        """Clica no botão 'SALVAR' no modal de novo comprovante.
+
+        Trata o alert do navegador caso o Salic exija justificativa
+        ("Valor acima do permitido, justificar acrescimo."). Nesse caso,
+        aceita o alert, loga o erro e retorna False.
+
+        O conteúdo do alert fica disponível em ``self.ultimo_alert``
+        para que o chamador possa classificar o tipo de erro.
+
+        Returns:
+            True se o comprovante foi salvo com sucesso.
+        """
+        self.ultimo_alert = None
+
+        def _on_dialog(dialog):
+            self.ultimo_alert = dialog.message
+            dialog.accept()
+
+        try:
+            self.logger.info("Clicando em 'SALVAR'...")
+            self.page.on("dialog", _on_dialog)
+            self.page.locator(self.BOTAO_SALVAR).click()
+
+            # O dialog do navegador é tratado de forma síncrona pelo
+            # Playwright: quando click() retorna, o handler _on_dialog
+            # já foi executado (se houve alert).
+            if self.ultimo_alert:
+                self.logger.error("Alert do Salic ao salvar: %s", self.ultimo_alert)
+                return False
+
+            # Sem alert → salvo com sucesso; aguarda modal fechar
+            self.page.wait_for_selector(
+                self.MODAL_NOVO_COMPROVANTE, state="hidden", timeout=15000
+            )
+            self.logger.info("Comprovante salvo com sucesso!")
+            return True
+
+        except Exception as e:
+            self.logger.error("Erro ao clicar em 'SALVAR': %s", e)
+            self.page.screenshot(
+                path=os.path.join(SCREENSHOTS_DIR, "erro_salvar.png"),
+                full_page=True,
+            )
+            return False
+        finally:
+            self.page.remove_listener("dialog", _on_dialog)
 
     def clicar_cancelar_modal(self) -> bool:
         """Clica no botão 'CANCELAR' no modal de novo comprovante.
