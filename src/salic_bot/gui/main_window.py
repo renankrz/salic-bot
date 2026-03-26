@@ -4,10 +4,11 @@ import logging
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -15,12 +16,15 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QStyle,
+    QStyleOptionButton,
     QVBoxLayout,
     QWidget,
 )
 
 from ..bot import SalicBot
 from ..config import LOGS_DIR, SCREENSHOTS_DIR
+from ..config_manager import ConfigManager
 from ..logging_config import configurar_logging
 from ..models.projeto import Projeto
 
@@ -45,12 +49,45 @@ class BotWorker(QThread):
             self.error.emit(str(e))
 
 
+class CustomCheckBox(QCheckBox):
+    def paintEvent(self, event):
+        # Desenha o checkbox nativo (label/texto)
+        super().paintEvent(event)
+
+        # Localiza o retângulo do indicador
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        rect = self.style().subElementRect(
+            QStyle.SubElement.SE_CheckBoxIndicator, option, self
+        )
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        painter.fillRect(rect, QColor("#1a1a1a"))
+
+        # Borda clara
+        painter.setPen(QPen(QColor("#aaaaaa"), 1))
+        painter.drawRect(rect.adjusted(0, 0, -1, -1))
+
+        # Check mark quando marcado
+        if self.isChecked():
+            painter.setPen(QColor("#00ff00"))
+            font = painter.font()
+            font.setPixelSize(rect.height() + 4)
+            font.setBold(True)
+            painter.setFont(font)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "✓")
+
+        painter.end()
+
+
 class MainWindow(QWidget):
     """Janela principal do Salic Bot"""
 
     def __init__(self):
         super().__init__()
         self.worker = None
+        self.config = ConfigManager()
         self._build_ui()
 
     def _build_ui(self):
@@ -124,6 +161,12 @@ class MainWindow(QWidget):
         self.senha_input.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.senha_input)
 
+        # 7) Checkbox "Lembrar credenciais"
+        self.lembrar_check = CustomCheckBox("Lembrar credenciais")
+        self.lembrar_check.setStyleSheet("font-family: monospace;")
+        self.lembrar_check.setChecked(self.config.has_saved_credentials())
+        layout.addWidget(self.lembrar_check)
+
         # --- Botão RODAR ---
         self.btn_rodar = QPushButton("RODAR")
         self.btn_rodar.setStyleSheet(
@@ -140,14 +183,17 @@ class MainWindow(QWidget):
 
         self.setLayout(layout)
 
-        # Pré-preencher com valores do .env se existirem
-        load_dotenv()
-        env_cpf = os.getenv("USER_CPF") or ""
-        env_senha = os.getenv("USER_SENHA") or ""
-        env_clientes = os.getenv("CLIENTES_DIR") or ""
-        self.cpf_input.setText(env_cpf)
-        self.senha_input.setText(env_senha)
-        self.clientes_dir_input.setText(env_clientes)
+        # Pré-preencher com valores do ConfigManager (QSettings/keyring/.env/default)
+        mecanismo = self.config.get_for_gui("mecanismo")
+        idx = self.mecanismo_combo.findText(mecanismo)
+        if idx >= 0:
+            self.mecanismo_combo.setCurrentIndex(idx)
+
+        self.proponente_input.setText(self.config.get_for_gui("proponente"))
+        self.pronac_input.setText(self.config.get_for_gui("pronac"))
+        self.clientes_dir_input.setText(self.config.get_for_gui("clientes_dir"))
+        self.cpf_input.setText(self.config.get_for_gui("cpf"))
+        self.senha_input.setText(self.config.get_for_gui("senha"))
 
     def _label(self, text: str) -> QLabel:
         lbl = QLabel(text)
@@ -197,9 +243,12 @@ class MainWindow(QWidget):
             pronac=pronac,
         )
 
-        # Sobrescreve variáveis de ambiente para o bot usar
-        os.environ["cpf"] = cpf
-        os.environ["senha"] = senha
+        # Salvar preferências no QSettings
+        self.config.save_preferences(mecanismo, proponente, pronac_text, clientes_dir)
+
+        # Salvar credenciais no keyring se checkbox marcado
+        if self.lembrar_check.isChecked():
+            self.config.save_credentials(cpf, senha)
 
         headless = os.getenv("HEADLESS", "False").lower() == "true"
         slow_mo = int(os.getenv("SLOW_MO", "100"))
@@ -219,6 +268,8 @@ class MainWindow(QWidget):
             slow_mo=slow_mo,
             projeto=projeto,
             clientes_dir=clientes_dir,
+            cpf=cpf,
+            senha=senha,
         )
 
         self.btn_rodar.setEnabled(False)

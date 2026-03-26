@@ -3,7 +3,6 @@
 import logging
 import os
 
-from dotenv import load_dotenv
 from playwright.sync_api import Page
 
 logger = logging.getLogger(__name__)
@@ -36,6 +35,8 @@ class SalicBot:
         slow_mo: int = 0,
         projeto: Projeto = None,
         clientes_dir: str = None,
+        cpf: str = None,
+        senha: str = None,
     ):
         """
         Inicializa o bot
@@ -45,6 +46,8 @@ class SalicBot:
             slow_mo: Delay entre ações em ms (para debug)
             projeto: Dados do projeto a ser selecionado
             clientes_dir: Caminho para a pasta raiz de clientes
+            cpf: CPF do usuário para login
+            senha: Senha do usuário para login
         """
         self.browser_manager = BrowserManager(headless=headless, slow_mo=slow_mo)
         self.page: Page = None
@@ -53,13 +56,11 @@ class SalicBot:
         self.projeto = projeto
         self.clientes_dir = clientes_dir
 
-        # Carrega variáveis de ambiente
-        load_dotenv()
-        self.cpf = os.getenv("cpf") or os.getenv("USER_CPF")
-        self.senha = os.getenv("senha") or os.getenv("USER_SENHA")
+        self.cpf = cpf
+        self.senha = senha
 
         if not self.cpf or not self.senha:
-            raise ValueError("cpf e senha devem estar definidos no .env")
+            raise ValueError("cpf e senha são obrigatórios")
 
     def iniciar(self):
         """Inicia o navegador"""
