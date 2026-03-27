@@ -23,7 +23,7 @@ class ComprovantesPage(BasePage):
 
     BOTAO_ADICIONAR = ".fixed-action-btn a.btn-floating"
     MODAL_NOVO_COMPROVANTE = "#modal1"
-    BOTAO_SALVAR = "#test1 button.btn:not(.white)"
+    BOTAO_SALVAR = "#test1 button[type='button'].btn:not(.white)"
     BOTAO_CANCELAR = "#test1 button.btn.white.black-text"
     BOTAO_VOLTAR = "#app-comprovante .page-title a"
 
