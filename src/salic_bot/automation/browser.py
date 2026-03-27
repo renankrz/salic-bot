@@ -10,7 +10,7 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 logger = logging.getLogger(__name__)
 
-from ..config import SCREENSHOTS_DIR
+from ..paths import SCREENSHOTS_DIR
 
 # Garante que PLAYWRIGHT_BROWSERS_PATH esteja em os.environ antes do sync_playwright,
 # resolvendo o caminho relativo em relação à raiz do projeto (onde fica o .env).

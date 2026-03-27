@@ -23,10 +23,10 @@ from PySide6.QtWidgets import (
 )
 
 from ..bot import SalicBot
-from ..config import LOGS_DIR, SCREENSHOTS_DIR
-from ..config_manager import ConfigManager
-from ..logging_config import configurar_logging
+from ..logging_setup import configurar_logging
 from ..models.projeto import Projeto
+from ..paths import LOGS_DIR, SCREENSHOTS_DIR
+from ..settings import ConfigManager
 
 logger = logging.getLogger(__name__)
 

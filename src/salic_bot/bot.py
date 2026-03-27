@@ -15,8 +15,8 @@ from .automation.pages.inicio_page import InicioPage
 from .automation.pages.login_page import LoginPage
 from .automation.pages.projeto_page import ProjetoPage
 from .automation.pages.projetos_page import ProjetosPage
-from .config import SCREENSHOTS_DIR
 from .models.projeto import Projeto
+from .paths import SCREENSHOTS_DIR
 from .utils.csv_tools import ler_csv
 from .utils.drive_manager import (
     localizar_comprovante,

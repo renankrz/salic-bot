@@ -5,7 +5,7 @@ import os
 
 from playwright.sync_api import Page
 
-from ..config import SCREENSHOTS_DIR
+from ..paths import SCREENSHOTS_DIR
 
 
 class BasePage:

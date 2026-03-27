@@ -4,8 +4,8 @@ import os
 
 from playwright.sync_api import Page
 
-from ...config import SCREENSHOTS_DIR
 from ...models.projeto import Projeto
+from ...paths import SCREENSHOTS_DIR
 from ...utils.formatters import formatar_cnpj
 from ..base_page import BasePage
 
