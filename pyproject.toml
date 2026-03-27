@@ -15,7 +15,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "black>=26.0.0",
     "isort>=8.0.0",
