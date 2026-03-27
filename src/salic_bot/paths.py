@@ -34,6 +34,22 @@ def _get_app_dir() -> Path:
 BUNDLE_DIR = _get_bundle_dir()
 APP_DIR = _get_app_dir()
 
-BROWSERS_DIR = str(BUNDLE_DIR / "browsers")
+
+def _get_browsers_dir() -> str:
+    """Diretório dos browsers do Playwright.
+
+    - Desenvolvimento: <projeto>/browsers
+    - PyInstaller (Linux/Windows): sys._MEIPASS/browsers (embutido)
+    - PyInstaller (macOS): ao lado do executável (não pode embutir .app bundles)
+    """
+    if is_frozen():
+        alongside = APP_DIR / "browsers"
+        if alongside.is_dir():
+            return str(alongside)
+        return str(BUNDLE_DIR / "browsers")
+    return str(Path(__file__).resolve().parent.parent.parent / "browsers")
+
+
+BROWSERS_DIR = _get_browsers_dir()
 LOGS_DIR = str(APP_DIR / "logs")
 SCREENSHOTS_DIR = str(APP_DIR / "screenshots")
