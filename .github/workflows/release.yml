@@ -1,0 +1,87 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: salic-bot-linux
+            exe_name: salic-bot
+          - os: macos-latest
+            artifact: salic-bot-macos
+            exe_name: salic-bot
+          - os: windows-latest
+            artifact: salic-bot-windows
+            exe_name: salic-bot.exe
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Instalar Chromium via Playwright
+        run: |
+          python -m playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ./browsers
+
+      - name: Build com PyInstaller
+        run: pyinstaller --clean --noconfirm salic-bot.spec
+
+      - name: Verificar executável (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x dist/${{ matrix.exe_name }}
+          dist/${{ matrix.exe_name }} --help
+
+      - name: Verificar executável (Windows)
+        if: runner.os == 'Windows'
+        run: dist/${{ matrix.exe_name }} --help
+
+      - name: Upload artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.exe_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Criar Release
+
+    steps:
+      - name: Download de todos os artefatos
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Criar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/salic-bot-linux/salic-bot
+            artifacts/salic-bot-macos/salic-bot
+            artifacts/salic-bot-windows/salic-bot.exe
