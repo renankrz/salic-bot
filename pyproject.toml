@@ -15,6 +15,13 @@ dependencies = [
     "python-dotenv>=1.2.2",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "black>=26.0.0",
+    "isort>=8.0.0",
+    "pyinstaller>=6.0.0",
+]
+
 [project.scripts]
 salic-bot = "salic_bot.__main__:main"
 

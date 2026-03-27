@@ -10,19 +10,12 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 logger = logging.getLogger(__name__)
 
-from ..paths import SCREENSHOTS_DIR
+from ..paths import BROWSERS_DIR, SCREENSHOTS_DIR
 
-# Garante que PLAYWRIGHT_BROWSERS_PATH esteja em os.environ antes do sync_playwright,
-# resolvendo o caminho relativo em relação à raiz do projeto (onde fica o .env).
-_dotenv_path = find_dotenv()
-load_dotenv(_dotenv_path)
-
-_browsers_path = os.getenv("PLAYWRIGHT_BROWSERS_PATH")
-if _browsers_path and not os.path.isabs(_browsers_path):
-    _project_root = Path(_dotenv_path).parent
-    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(
-        (_project_root / _browsers_path).resolve()
-    )
+# Garante que PLAYWRIGHT_BROWSERS_PATH aponte para o diretório correto,
+# tanto em desenvolvimento quanto no executável PyInstaller.
+load_dotenv(find_dotenv())
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = BROWSERS_DIR
 
 
 class BrowserManager:
