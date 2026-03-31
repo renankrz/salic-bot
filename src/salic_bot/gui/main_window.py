@@ -142,6 +142,11 @@ class MainWindow(QWidget):
         pasta_layout.addWidget(btn_browse)
         layout.addLayout(pasta_layout)
 
+        # 5) Checkbox Dry Run
+        self.dry_run_check = CustomCheckBox("Dry Run (insere mas não salva)")
+        self.dry_run_check.setStyleSheet("font-family: monospace;")
+        layout.addWidget(self.dry_run_check)
+
         # --- Seção: Credenciais ---
         sec_cred = QLabel("Credenciais")
         sec_cred.setStyleSheet(
@@ -149,19 +154,19 @@ class MainWindow(QWidget):
         )
         layout.addWidget(sec_cred, alignment=Qt.AlignCenter)
 
-        # 5) CPF
+        # 1) CPF
         layout.addWidget(self._label("CPF:"))
         self.cpf_input = QLineEdit()
         self.cpf_input.setPlaceholderText("Somente dígitos")
         layout.addWidget(self.cpf_input)
 
-        # 6) Senha
+        # 2) Senha
         layout.addWidget(self._label("Senha:"))
         self.senha_input = QLineEdit()
         self.senha_input.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.senha_input)
 
-        # 7) Checkbox "Lembrar credenciais"
+        # 3) Checkbox "Lembrar credenciais"
         self.lembrar_check = CustomCheckBox("Lembrar credenciais")
         self.lembrar_check.setStyleSheet("font-family: monospace;")
         self.lembrar_check.setChecked(self.config.has_saved_credentials())
@@ -256,6 +261,8 @@ class MainWindow(QWidget):
         logger.info("=" * 60)
         logger.info("Salic Bot - Automação de Prestação de Contas (GUI)")
         logger.info("=" * 60)
+        if self.dry_run_check.isChecked():
+            logger.info("Modo DRY RUN ativado — comprovantes NÃO serão salvos")
         logger.info(
             "Iniciando execução | mecanismo=%s | proponente=%s | pronac=%s",
             mecanismo,
@@ -270,6 +277,7 @@ class MainWindow(QWidget):
             clientes_dir=clientes_dir,
             cpf=cpf,
             senha=senha,
+            dry_run=self.dry_run_check.isChecked(),
         )
 
         self.btn_rodar.setEnabled(False)

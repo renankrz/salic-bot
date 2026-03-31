@@ -16,7 +16,7 @@ Execute sem argumentos para abrir a interface gráfica:
 salic-bot
 ```
 
-Preencha os campos (Mecanismo, Proponente, PRONAC, Pasta de Clientes, CPF e Senha) e clique em **RODAR**. As credenciais podem ser salvas no keyring do sistema operacional marcando "Lembrar credenciais".
+Preencha os campos (Mecanismo, Proponente, PRONAC, Pasta de Clientes, CPF e Senha) e clique em **RODAR**. As credenciais podem ser salvas no keyring do sistema operacional marcando "Lembrar credenciais". Para executar em modo dry run (preenche os campos mas cancela em vez de salvar), marque a caixa **Dry run**.
 
 ### CLI
 
@@ -24,6 +24,19 @@ Passe os argumentos pela linha de comando:
 
 ```bash
 salic-bot \
+  --mecanismo Mecenato \
+  --proponente 11222333000181 \
+  --pronac 241819 \
+  --clientes-dir /caminho/para/clientes \
+  --cpf 11122233344 \
+  --senha SuaSenha
+```
+
+Para executar em modo **dry run** (preenche os campos mas cancela em vez de salvar cada comprovante):
+
+```bash
+salic-bot \
+  --dry \
   --mecanismo Mecenato \
   --proponente 11222333000181 \
   --pronac 241819 \
