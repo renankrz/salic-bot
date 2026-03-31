@@ -56,6 +56,8 @@ def _run_cli(args: argparse.Namespace) -> int:
     logger.info("=" * 60)
     logger.info("Salic Bot - Automação de Prestação de Contas")
     logger.info("=" * 60)
+    if args.dry:
+        logger.info("Modo DRY RUN ativado — comprovantes NÃO serão salvos")
     logger.info(
         "Iniciando execução | mecanismo=%s | proponente=%s | pronac=%s",
         mecanismo,
@@ -70,6 +72,7 @@ def _run_cli(args: argparse.Namespace) -> int:
         clientes_dir=clientes_dir,
         cpf=cpf,
         senha=senha,
+        dry_run=args.dry,
     )
     itens_ok, total = bot.executar()
 
@@ -115,6 +118,12 @@ def main():
     parser.add_argument("--clientes-dir", default=None, help="Pasta raiz de clientes")
     parser.add_argument("--cpf", default=None, help="CPF do usuário (somente dígitos)")
     parser.add_argument("--senha", default=None, help="Senha do usuário")
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        default=False,
+        help="Dry run: cancela em vez de salvar cada comprovante",
+    )
     args = parser.parse_args()
 
     return _run_cli(args)

@@ -37,6 +37,7 @@ class SalicBot:
         clientes_dir: str = None,
         cpf: str = None,
         senha: str = None,
+        dry_run: bool = False,
     ):
         """
         Inicializa o bot
@@ -58,6 +59,7 @@ class SalicBot:
 
         self.cpf = cpf
         self.senha = senha
+        self.dry_run = dry_run
 
         if not self.cpf or not self.senha:
             raise ValueError("cpf e senha são obrigatórios")
@@ -355,40 +357,51 @@ class SalicBot:
             self.projeto_page.screenshot(path=screenshot_path, full_page=True)
             logger.info("Screenshot salvo: %s", screenshot_path)
 
-            # 5. Salvar comprovante
-            salvo = comp_page.clicar_salvar_modal()
-            if not salvo:
-                if (
-                    comp_page.ultimo_alert
-                    and ComprovantesPage.ALERT_JUSTIFICATIVA in comp_page.ultimo_alert
-                ):
-                    logger.error(
-                        "Item %d/%d (%s): justificativa obrigatória ausente. "
-                        "O valor ultrapassa o permitido e o campo "
-                        "Justificativa não foi preenchido.",
-                        numero_item,
-                        total,
-                        item_de_custo,
-                    )
-                else:
-                    logger.error(
-                        "Item %d/%d (%s): erro desconhecido ao salvar. " "Alert: %s",
-                        numero_item,
-                        total,
-                        item_de_custo,
-                        comp_page.ultimo_alert or "(sem alert)",
-                    )
-                self.projeto_page.screenshot(
-                    path=os.path.join(
-                        SCREENSHOTS_DIR,
-                        f"erro_item_{numero_item}_salvar.png",
-                    ),
-                    full_page=True,
+            # 5. Salvar ou cancelar comprovante (dry run)
+            if self.dry_run:
+                logger.info(
+                    "DRY RUN: cancelando item %d/%d (%s) em vez de salvar",
+                    numero_item,
+                    total,
+                    item_de_custo,
                 )
                 comp_page.clicar_cancelar_modal()
-                comp_page.clicar_voltar()
-                itens_erro += 1
-                continue
+            else:
+                salvo = comp_page.clicar_salvar_modal()
+                if not salvo:
+                    if (
+                        comp_page.ultimo_alert
+                        and ComprovantesPage.ALERT_JUSTIFICATIVA
+                        in comp_page.ultimo_alert
+                    ):
+                        logger.error(
+                            "Item %d/%d (%s): justificativa obrigatória ausente. "
+                            "O valor ultrapassa o permitido e o campo "
+                            "Justificativa não foi preenchido.",
+                            numero_item,
+                            total,
+                            item_de_custo,
+                        )
+                    else:
+                        logger.error(
+                            "Item %d/%d (%s): erro desconhecido ao salvar. "
+                            "Alert: %s",
+                            numero_item,
+                            total,
+                            item_de_custo,
+                            comp_page.ultimo_alert or "(sem alert)",
+                        )
+                    self.projeto_page.screenshot(
+                        path=os.path.join(
+                            SCREENSHOTS_DIR,
+                            f"erro_item_{numero_item}_salvar.png",
+                        ),
+                        full_page=True,
+                    )
+                    comp_page.clicar_cancelar_modal()
+                    comp_page.clicar_voltar()
+                    itens_erro += 1
+                    continue
 
             # 6. Voltar para Comprovação Financeira
             if not comp_page.clicar_voltar():

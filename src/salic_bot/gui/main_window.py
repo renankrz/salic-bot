@@ -167,6 +167,11 @@ class MainWindow(QWidget):
         self.lembrar_check.setChecked(self.config.has_saved_credentials())
         layout.addWidget(self.lembrar_check)
 
+        # 8) Checkbox "Não salvar" (dry run)
+        self.dry_run_check = CustomCheckBox("Não salvar")
+        self.dry_run_check.setStyleSheet("font-family: monospace;")
+        layout.addWidget(self.dry_run_check)
+
         # --- Botão RODAR ---
         self.btn_rodar = QPushButton("RODAR")
         self.btn_rodar.setStyleSheet(
@@ -256,6 +261,8 @@ class MainWindow(QWidget):
         logger.info("=" * 60)
         logger.info("Salic Bot - Automação de Prestação de Contas (GUI)")
         logger.info("=" * 60)
+        if self.dry_run_check.isChecked():
+            logger.info("Modo DRY RUN ativado — comprovantes NÃO serão salvos")
         logger.info(
             "Iniciando execução | mecanismo=%s | proponente=%s | pronac=%s",
             mecanismo,
@@ -270,6 +277,7 @@ class MainWindow(QWidget):
             clientes_dir=clientes_dir,
             cpf=cpf,
             senha=senha,
+            dry_run=self.dry_run_check.isChecked(),
         )
 
         self.btn_rodar.setEnabled(False)
