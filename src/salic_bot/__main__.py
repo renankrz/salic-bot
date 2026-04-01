@@ -21,7 +21,8 @@ def _run_cli(args: argparse.Namespace) -> int:
     mecanismo = config.get_for_cli("mecanismo", args.mecanismo)
     proponente = config.get_for_cli("proponente", args.proponente)
     pronac = config.get_for_cli("pronac", args.pronac)
-    clientes_dir = config.get_for_cli("clientes_dir", args.clientes_dir)
+    itens_csv = config.get_for_cli("itens_csv", args.itens_csv)
+    comprovantes_dir = config.get_for_cli("comprovantes_dir", args.comprovantes_dir)
     cpf = config.get_for_cli("cpf", args.cpf)
     senha = config.get_for_cli("senha", args.senha)
 
@@ -30,9 +31,13 @@ def _run_cli(args: argparse.Namespace) -> int:
         erros.append("Proponente é obrigatório (--proponente ou .env ou QSettings)")
     if not pronac:
         erros.append("PRONAC é obrigatório (--pronac ou .env ou QSettings)")
-    if not clientes_dir:
+    if not itens_csv:
         erros.append(
-            "Pasta de clientes é obrigatória (--clientes-dir ou .env ou QSettings)"
+            "CSV com itens de custo é obrigatório (--itens-csv ou .env ou QSettings)"
+        )
+    if not comprovantes_dir:
+        erros.append(
+            "Pasta de comprovantes é obrigatória (--comprovantes-dir ou .env ou QSettings)"
         )
     if not cpf:
         erros.append("CPF é obrigatório (--cpf ou .env ou keyring)")
@@ -69,7 +74,8 @@ def _run_cli(args: argparse.Namespace) -> int:
         headless=headless,
         slow_mo=slow_mo,
         projeto=projeto,
-        clientes_dir=clientes_dir,
+        itens_csv=itens_csv,
+        comprovantes_dir=comprovantes_dir,
         cpf=cpf,
         senha=senha,
         dry_run=args.dry,
@@ -115,7 +121,12 @@ def main():
         "--proponente", default=None, help="CNPJ do proponente (somente dígitos)"
     )
     parser.add_argument("--pronac", default=None, help="PRONAC do projeto")
-    parser.add_argument("--clientes-dir", default=None, help="Pasta raiz de clientes")
+    parser.add_argument(
+        "--itens-csv", default=None, help="Caminho para o CSV com itens de custo"
+    )
+    parser.add_argument(
+        "--comprovantes-dir", default=None, help="Pasta de comprovantes (PDFs)"
+    )
     parser.add_argument("--cpf", default=None, help="CPF do usuário (somente dígitos)")
     parser.add_argument("--senha", default=None, help="Senha do usuário")
     parser.add_argument(

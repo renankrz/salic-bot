@@ -28,7 +28,8 @@ class ConfigManager:
         "mecanismo": "MECANISMO",
         "proponente": "PROPONENTE",
         "pronac": "PRONAC",
-        "clientes_dir": "CLIENTES_DIR",
+        "itens_csv": "ITENS_CSV",
+        "comprovantes_dir": "COMPROVANTES_DIR",
         "cpf": "USER_CPF",
         "senha": "USER_SENHA",
     }
@@ -37,7 +38,8 @@ class ConfigManager:
         "mecanismo": "Mecenato",
         "proponente": "",
         "pronac": "",
-        "clientes_dir": "",
+        "itens_csv": "",
+        "comprovantes_dir": "",
         "cpf": "",
         "senha": "",
     }
@@ -52,7 +54,7 @@ class ConfigManager:
         """Retorna valor para pré-preencher a GUI.
 
         Precedência:
-        - mecanismo, proponente, pronac, clientes_dir: .env → QSettings → default
+        - mecanismo, proponente, pronac, itens_csv, comprovantes_dir: .env → QSettings → default
         - cpf, senha: .env → keyring → default
         """
         value = self._from_env(key)
@@ -78,7 +80,7 @@ class ConfigManager:
         """Retorna valor para a CLI.
 
         Precedência:
-        - mecanismo, proponente, pronac, clientes_dir: CLI → .env → QSettings → default/erro
+        - mecanismo, proponente, pronac, itens_csv, comprovantes_dir: CLI → .env → QSettings → default/erro
         - cpf, senha: CLI → .env → keyring → default/erro
         """
         if cli_value:
@@ -107,13 +109,19 @@ class ConfigManager:
     # --- Persistência ---
 
     def save_preferences(
-        self, mecanismo: str, proponente: str, pronac: str, clientes_dir: str
+        self,
+        mecanismo: str,
+        proponente: str,
+        pronac: str,
+        itens_csv: str,
+        comprovantes_dir: str,
     ):
         """Salva preferências de sessão no QSettings."""
         self._settings.setValue("mecanismo", mecanismo)
         self._settings.setValue("proponente", proponente)
         self._settings.setValue("pronac", pronac)
-        self._settings.setValue("clientes_dir", clientes_dir)
+        self._settings.setValue("itens_csv", itens_csv)
+        self._settings.setValue("comprovantes_dir", comprovantes_dir)
         self._settings.sync()
         logger.info("Preferências salvas no QSettings")
 

@@ -129,18 +129,33 @@ class MainWindow(QWidget):
         self.pronac_input.setPlaceholderText("Número do PRONAC")
         layout.addWidget(self.pronac_input)
 
-        # 4) Pasta de Clientes
-        layout.addWidget(self._label("Pasta de Clientes:"))
-        pasta_layout = QHBoxLayout()
-        self.clientes_dir_input = QLineEdit()
-        self.clientes_dir_input.setPlaceholderText("Selecione a pasta de clientes")
-        self.clientes_dir_input.setReadOnly(True)
-        pasta_layout.addWidget(self.clientes_dir_input)
-        btn_browse = QPushButton("...")
-        btn_browse.setFixedWidth(36)
-        btn_browse.clicked.connect(self._selecionar_pasta)
-        pasta_layout.addWidget(btn_browse)
-        layout.addLayout(pasta_layout)
+        # 4) CSV com itens de custo
+        layout.addWidget(self._label("CSV com itens de custo:"))
+        csv_layout = QHBoxLayout()
+        self.itens_csv_input = QLineEdit()
+        self.itens_csv_input.setPlaceholderText("Selecione o CSV com itens de custo")
+        self.itens_csv_input.setReadOnly(True)
+        csv_layout.addWidget(self.itens_csv_input)
+        btn_browse_csv = QPushButton("...")
+        btn_browse_csv.setFixedWidth(36)
+        btn_browse_csv.clicked.connect(self._selecionar_csv)
+        csv_layout.addWidget(btn_browse_csv)
+        layout.addLayout(csv_layout)
+
+        # 5) Pasta de Comprovantes
+        layout.addWidget(self._label("Pasta de Comprovantes:"))
+        comprovantes_layout = QHBoxLayout()
+        self.comprovantes_dir_input = QLineEdit()
+        self.comprovantes_dir_input.setPlaceholderText(
+            "Selecione a pasta de comprovantes"
+        )
+        self.comprovantes_dir_input.setReadOnly(True)
+        comprovantes_layout.addWidget(self.comprovantes_dir_input)
+        btn_browse_comprovantes = QPushButton("...")
+        btn_browse_comprovantes.setFixedWidth(36)
+        btn_browse_comprovantes.clicked.connect(self._selecionar_pasta_comprovantes)
+        comprovantes_layout.addWidget(btn_browse_comprovantes)
+        layout.addLayout(comprovantes_layout)
 
         # 5) Checkbox Dry Run
         self.dry_run_check = CustomCheckBox("Dry Run (insere mas não salva)")
@@ -196,7 +211,8 @@ class MainWindow(QWidget):
 
         self.proponente_input.setText(self.config.get_for_gui("proponente"))
         self.pronac_input.setText(self.config.get_for_gui("pronac"))
-        self.clientes_dir_input.setText(self.config.get_for_gui("clientes_dir"))
+        self.itens_csv_input.setText(self.config.get_for_gui("itens_csv"))
+        self.comprovantes_dir_input.setText(self.config.get_for_gui("comprovantes_dir"))
         self.cpf_input.setText(self.config.get_for_gui("cpf"))
         self.senha_input.setText(self.config.get_for_gui("senha"))
 
@@ -205,16 +221,26 @@ class MainWindow(QWidget):
         lbl.setStyleSheet("font-family: monospace;")
         return lbl
 
-    def _selecionar_pasta(self):
-        pasta = QFileDialog.getExistingDirectory(self, "Selecionar Pasta de Clientes")
+    def _selecionar_csv(self):
+        arquivo, _ = QFileDialog.getOpenFileName(
+            self, "Selecionar CSV com itens de custo", "", "CSV (*.csv)"
+        )
+        if arquivo:
+            self.itens_csv_input.setText(arquivo)
+
+    def _selecionar_pasta_comprovantes(self):
+        pasta = QFileDialog.getExistingDirectory(
+            self, "Selecionar Pasta de Comprovantes"
+        )
         if pasta:
-            self.clientes_dir_input.setText(pasta)
+            self.comprovantes_dir_input.setText(pasta)
 
     def _rodar(self):
         # Validação
         proponente = self.proponente_input.text().strip()
         pronac_text = self.pronac_input.text().strip()
-        clientes_dir = self.clientes_dir_input.text().strip()
+        itens_csv = self.itens_csv_input.text().strip()
+        comprovantes_dir = self.comprovantes_dir_input.text().strip()
         cpf = self.cpf_input.text().strip()
         senha = self.senha_input.text().strip()
 
@@ -228,8 +254,10 @@ class MainWindow(QWidget):
                 int(pronac_text)
             except ValueError:
                 erros.append("PRONAC deve ser numérico.")
-        if not clientes_dir:
-            erros.append("Pasta de Clientes é obrigatória.")
+        if not itens_csv:
+            erros.append("CSV com itens de custo é obrigatório.")
+        if not comprovantes_dir:
+            erros.append("Pasta de Comprovantes é obrigatória.")
         if not cpf:
             erros.append("CPF é obrigatório.")
         if not senha:
@@ -249,7 +277,9 @@ class MainWindow(QWidget):
         )
 
         # Salvar preferências no QSettings
-        self.config.save_preferences(mecanismo, proponente, pronac_text, clientes_dir)
+        self.config.save_preferences(
+            mecanismo, proponente, pronac_text, itens_csv, comprovantes_dir
+        )
 
         # Salvar credenciais no keyring se checkbox marcado
         if self.lembrar_check.isChecked():
@@ -274,7 +304,8 @@ class MainWindow(QWidget):
             headless=headless,
             slow_mo=slow_mo,
             projeto=projeto,
-            clientes_dir=clientes_dir,
+            itens_csv=itens_csv,
+            comprovantes_dir=comprovantes_dir,
             cpf=cpf,
             senha=senha,
             dry_run=self.dry_run_check.isChecked(),

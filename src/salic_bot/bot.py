@@ -18,11 +18,7 @@ from .automation.pages.projetos_page import ProjetosPage
 from .models.projeto import Projeto
 from .paths import SCREENSHOTS_DIR
 from .utils.csv_tools import ler_csv
-from .utils.drive_manager import (
-    localizar_comprovante,
-    localizar_csv_execucao_financeira,
-    localizar_pasta_execucao_financeira,
-)
+from .utils.drive_manager import localizar_comprovante
 from .utils.formatters import safe_str
 
 
@@ -34,7 +30,8 @@ class SalicBot:
         headless: bool = True,
         slow_mo: int = 0,
         projeto: Projeto = None,
-        clientes_dir: str = None,
+        itens_csv: str = None,
+        comprovantes_dir: str = None,
         cpf: str = None,
         senha: str = None,
         dry_run: bool = False,
@@ -46,7 +43,8 @@ class SalicBot:
             headless: Se deve rodar sem interface gráfica
             slow_mo: Delay entre ações em ms (para debug)
             projeto: Dados do projeto a ser selecionado
-            clientes_dir: Caminho para a pasta raiz de clientes
+            itens_csv: Caminho para o CSV com itens de custo
+            comprovantes_dir: Caminho para a pasta de comprovantes
             cpf: CPF do usuário para login
             senha: Senha do usuário para login
         """
@@ -55,7 +53,8 @@ class SalicBot:
         self.projeto_page: Page = None
         self.pagina_atual: Page = None
         self.projeto = projeto
-        self.clientes_dir = clientes_dir
+        self.itens_csv = itens_csv
+        self.comprovantes_dir = comprovantes_dir
 
         self.cpf = cpf
         self.senha = senha
@@ -172,7 +171,7 @@ class SalicBot:
 
     def navegar_para_comprovantes(self) -> bool:
         """
-        Lê a primeira linha do CSV de execução financeira, navega pelo accordion
+        Lê a primeira linha do CSV com itens de custo, navega pelo accordion
         de Comprovação Financeira e clica em 'Comprovar item' para o item de custo.
 
         Returns:
@@ -185,14 +184,9 @@ class SalicBot:
             )
 
         try:
-            csv_path = localizar_csv_execucao_financeira(
-                self.clientes_dir,
-                self.projeto.proponente,
-                self.projeto.pronac,
-            )
-            logger.info("CSV de execução financeira: %s", csv_path)
+            logger.info("CSV com itens de custo: %s", self.itens_csv)
 
-            df = ler_csv(csv_path)
+            df = ler_csv(self.itens_csv)
             linha = df.iloc[0]
 
             produto = str(linha["Produto"]).strip()
@@ -226,7 +220,7 @@ class SalicBot:
 
     def processar_todos_itens(self) -> tuple[int, int]:
         """
-        Lê todos os itens de custo do CSV de execução financeira e, para cada um:
+        Lê todos os itens de custo do CSV e, para cada um:
           1. Navega até a rubrica correta e abre a página de Comprovantes.
           2. Abre o modal de Novo Comprovante.
           3. Preenche os campos com os dados do CSV.
@@ -245,21 +239,11 @@ class SalicBot:
             )
 
         try:
-            csv_path = localizar_csv_execucao_financeira(
-                self.clientes_dir,
-                self.projeto.proponente,
-                self.projeto.pronac,
-            )
-            logger.info("CSV de execução financeira: %s", csv_path)
-            df = ler_csv(csv_path)
+            logger.info("CSV com itens de custo: %s", self.itens_csv)
+            df = ler_csv(self.itens_csv)
             logger.info("Total de itens de custo: %d", len(df))
 
-            execucao_dir = localizar_pasta_execucao_financeira(
-                self.clientes_dir,
-                self.projeto.proponente,
-                self.projeto.pronac,
-            )
-            logger.info("Pasta de execução financeira: %s", execucao_dir)
+            logger.info("Pasta de comprovantes: %s", self.comprovantes_dir)
         except FileNotFoundError as e:
             logger.error("Arquivo não encontrado: %s", e)
             return (0, 0)
@@ -322,7 +306,7 @@ class SalicBot:
             if data_emissao and numero_nf:
                 try:
                     pdf_path = localizar_comprovante(
-                        execucao_dir, data_emissao, numero_nf
+                        self.comprovantes_dir, data_emissao, numero_nf
                     )
                     arquivo_comprovante = str(pdf_path)
                     logger.info("PDF do comprovante: %s", arquivo_comprovante)
