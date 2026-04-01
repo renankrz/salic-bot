@@ -1,4 +1,4 @@
-"""Configurações globais do Salic Bot"""
+"""Configurações de paths"""
 
 import sys
 from pathlib import Path
