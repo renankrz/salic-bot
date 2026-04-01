@@ -107,7 +107,7 @@ class MainWindow(QWidget):
         # --- Seção: Configurações da Sessão ---
         sec_config = QLabel("Configurações da Sessão")
         sec_config.setStyleSheet(
-            "font-weight: bold; font-family: monospace; margin-top: 12px;"
+            "font-weight: bold; font-family: monospace; margin-top: 24px;"
         )
         layout.addWidget(sec_config, alignment=Qt.AlignCenter)
 
@@ -159,13 +159,13 @@ class MainWindow(QWidget):
 
         # 5) Checkbox Dry Run
         self.dry_run_check = CustomCheckBox("Dry Run (insere mas não salva)")
-        self.dry_run_check.setStyleSheet("font-family: monospace;")
+        self.dry_run_check.setStyleSheet("font-family: monospace; margin-top: 8px")
         layout.addWidget(self.dry_run_check)
 
         # --- Seção: Credenciais ---
         sec_cred = QLabel("Credenciais")
         sec_cred.setStyleSheet(
-            "font-weight: bold; font-family: monospace; margin-top: 12px;"
+            "font-weight: bold; font-family: monospace; margin-top: 24px;"
         )
         layout.addWidget(sec_cred, alignment=Qt.AlignCenter)
 
@@ -183,7 +183,7 @@ class MainWindow(QWidget):
 
         # 3) Checkbox "Lembrar credenciais"
         self.lembrar_check = CustomCheckBox("Lembrar credenciais")
-        self.lembrar_check.setStyleSheet("font-family: monospace;")
+        self.lembrar_check.setStyleSheet("font-family: monospace; margin-top: 8px")
         self.lembrar_check.setChecked(self.config.has_saved_credentials())
         layout.addWidget(self.lembrar_check)
 
