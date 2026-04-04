@@ -12,8 +12,8 @@ O CSV deve estar codificado em **UTF-8** (com ou sem BOM) e conter as seguintes 
 |---|---|---|
 | Produto | Produto da rubrica | `Curso / Oficina / Capacitação` |
 | Etapa | Etapa da rubrica | `Pré-Produção / Preparação` |
-| UF | Unidade federativa | `SP` |
-| Cidade | Cidade | `São Paulo` |
+| UF | Unidade federativa da rubrica | `SP` |
+| Cidade | Cidade da rubrica | `São Paulo` |
 | Item de Custo | Item de custo da rubrica | `Agente educativo(a): Oficineiro(a)` |
 | CPF | CPF do fornecedor (vazio se CNPJ preenchido) | `123.456.789-00` |
 | CNPJ | CNPJ do fornecedor (vazio se CPF preenchido) | `27.801.445/0001-27` |
@@ -26,6 +26,10 @@ O CSV deve estar codificado em **UTF-8** (com ou sem BOM) e conter as seguintes 
 | Nº Documento Pagamento | Número do documento de pagamento | `11005` |
 | Valor | Valor pago (formato brasileiro) | `R$ 2.200,00` |
 | Justificativa | Justificativa (obrigatória quando o valor ultrapassa o permitido) | |
+
+**Observação:** Os nomes das colunas não diferenciam maiúsculas de minúsculas (case-insensitive).
+
+> Por exemplo, `Produto`, `produto` ou `PRODUTO` serão reconhecidos da mesma forma.
 
 ## Pasta de comprovantes (PDFs)
 

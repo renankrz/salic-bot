@@ -19,7 +19,6 @@ from .models.projeto import Projeto
 from .paths import SCREENSHOTS_DIR
 from .utils.csv_tools import ler_csv
 from .utils.drive_manager import localizar_comprovante
-from .utils.formatters import safe_str
 
 
 class SalicBot:
@@ -169,55 +168,6 @@ class SalicBot:
 
         return sucesso
 
-    def navegar_para_comprovantes(self) -> bool:
-        """
-        Lê a primeira linha do CSV com itens de custo, navega pelo accordion
-        de Comprovação Financeira e clica em 'Comprovar item' para o item de custo.
-
-        Returns:
-            True se o clique foi realizado com sucesso.
-        """
-        if not self.projeto_page:
-            raise RuntimeError(
-                "Página do projeto não está disponível. "
-                "Chame selecionar_projeto() primeiro."
-            )
-
-        try:
-            logger.info("CSV com itens de custo: %s", self.itens_csv)
-
-            df = ler_csv(self.itens_csv)
-            linha = df.iloc[0]
-
-            produto = str(linha["Produto"]).strip()
-            etapa = str(linha["Etapa"]).strip()
-            uf = str(linha["UF"]).strip()
-            cidade = str(linha["Cidade"]).strip()
-            item_de_custo = str(linha["Item de Custo"]).strip()
-
-        except FileNotFoundError as e:
-            logger.error("Arquivo não encontrado: %s", e)
-            return False
-        except Exception as e:
-            logger.error("Erro ao carregar dados financeiros: %s", e)
-            return False
-
-        page = ComprovacaoFinanceiraPage(self.projeto_page)
-        sucesso = page.navegar_e_clicar_comprovar_item(
-            produto=produto,
-            etapa=etapa,
-            uf=uf,
-            cidade=cidade,
-            item_de_custo=item_de_custo,
-        )
-
-        if sucesso:
-            logger.info("Página de Comprovantes acessada com sucesso!")
-        else:
-            logger.error("Falha ao acessar página de Comprovantes")
-
-        return sucesso
-
     def processar_todos_itens(self) -> tuple[int, int]:
         """
         Lê todos os itens de custo do CSV e, para cada um:
@@ -240,8 +190,8 @@ class SalicBot:
 
         try:
             logger.info("CSV com itens de custo: %s", self.itens_csv)
-            df = ler_csv(self.itens_csv)
-            logger.info("Total de itens de custo: %d", len(df))
+            despesas = ler_csv(self.itens_csv)
+            logger.info("Total de itens de custo: %d", len(despesas))
 
             logger.info("Pasta de comprovantes: %s", self.comprovantes_dir)
         except FileNotFoundError as e:
@@ -254,19 +204,19 @@ class SalicBot:
         cf_page = ComprovacaoFinanceiraPage(self.projeto_page)
         comp_page = ComprovantesPage(self.projeto_page)
 
-        total = len(df)
+        total = len(despesas)
         itens_ok = 0
         itens_erro = 0
 
-        for idx, linha in df.iterrows():
+        for idx, despesa in enumerate(despesas):
             numero_item = idx + 1
-            produto = str(linha["Produto"]).strip()
-            etapa = str(linha["Etapa"]).strip()
-            uf = str(linha["UF"]).strip()
-            cidade = str(linha["Cidade"]).strip()
-            item_de_custo = str(linha["Item de Custo"]).strip()
+            produto = despesa.produto
+            etapa = despesa.etapa
+            uf = despesa.uf
+            cidade = despesa.cidade
+            item_de_custo = despesa.item_de_custo
 
-            logger.info("─── Item %d/%d: %s ───", numero_item, len(df), item_de_custo)
+            logger.info("─── Item %d/%d: %s ───", numero_item, total, item_de_custo)
 
             # 1. Navegar até a rubrica e abrir a página de Comprovantes
             if not cf_page.navegar_e_clicar_comprovar_item(
@@ -300,8 +250,8 @@ class SalicBot:
                 continue
 
             # 3. Preencher campos do modal
-            data_emissao = safe_str(linha["Data de Emissão"])
-            numero_nf = safe_str(linha["Número"])
+            data_emissao = despesa.data_de_emissao
+            numero_nf = despesa.numero
             arquivo_comprovante = None
             if data_emissao and numero_nf:
                 try:
@@ -322,7 +272,7 @@ class SalicBot:
                     continue
 
             if not comp_page.preencher_modal(
-                linha, arquivo_comprovante=arquivo_comprovante
+                despesa, arquivo_comprovante=arquivo_comprovante
             ):
                 logger.error("Falha ao preencher modal no item %d", numero_item)
                 self.projeto_page.screenshot(

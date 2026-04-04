@@ -4,13 +4,9 @@ import os
 
 from playwright.sync_api import Page
 
+from ...models.despesa import DespesaCSV
 from ...paths import SCREENSHOTS_DIR
-from ...utils.formatters import (
-    formatar_data_br,
-    limpar_ni,
-    limpar_valor_monetario,
-    safe_str,
-)
+from ...utils.formatters import formatar_data_br, limpar_ni, limpar_valor_monetario
 from ..base_page import BasePage
 
 
@@ -145,31 +141,27 @@ class ComprovantesPage(BasePage):
             )
             return False
 
-    def preencher_modal(self, linha, arquivo_comprovante: str = None) -> bool:
-        """Preenche os campos do modal de Novo Comprovante com os dados de uma linha do CSV.
+    def preencher_modal(
+        self, despesa: DespesaCSV, arquivo_comprovante: str = None
+    ) -> bool:
+        """Preenche os campos do modal de Novo Comprovante com dados de uma despesa.
 
         Args:
-            linha: Linha do DataFrame (pandas Series) com os dados do comprovante.
+            despesa: Dados da despesa já limpos e normalizados.
             arquivo_comprovante: Caminho absoluto para o arquivo PDF a ser enviado como comprovante.
 
         Returns:
             True se o modal foi preenchido com sucesso.
         """
-        import pandas as pd
-
         try:
             # --- Identificação do Contratado ---
-            cpf_raw = linha["CPF"]
-            cnpj_raw = linha["CNPJ"]
-            tem_cpf = not pd.isna(cpf_raw) and str(cpf_raw).strip() != ""
-
-            if tem_cpf:
+            if despesa.cpf:
                 tipo_pessoa = "1"
-                ni = limpar_ni(cpf_raw)
+                ni = limpar_ni(despesa.cpf)
                 tipo_label = "CPF"
             else:
                 tipo_pessoa = "2"
-                ni = limpar_ni(cnpj_raw)
+                ni = limpar_ni(despesa.cnpj)
                 tipo_label = "CNPJ"
 
             self.logger.info("  %s: %s", tipo_label, ni)
@@ -202,22 +194,22 @@ class ComprovantesPage(BasePage):
                 self.logger.debug("pesquisarFornecedor: AJAX response not detected")
 
             # --- Dados do Comprovante de Despesa ---
-            tipo_comp = safe_str(linha["Tipo Comprovante"])
+            tipo_comp = despesa.tipo_comprovante
             if tipo_comp:
                 self.page.select_option("#tpDocumento", label=tipo_comp)
                 self.logger.info("  Tipo Comprovante: %s", tipo_comp)
 
-            data_emissao = formatar_data_br(linha["Data de Emissão"])
+            data_emissao = formatar_data_br(despesa.data_de_emissao)
             if data_emissao:
                 self.page.fill("#dataEmissao", data_emissao)
                 self.logger.info("  Data de Emissão: %s", data_emissao)
 
-            numero = safe_str(linha["Número"])
+            numero = despesa.numero
             if numero:
                 self.page.fill("#nrComprovante", numero)
                 self.logger.info("  Número: %s", numero)
 
-            serie = safe_str(linha["Série"])
+            serie = despesa.serie
             if serie:
                 self.page.fill("#nrSerie", serie)
                 self.logger.info("  Série: %s", serie)
@@ -229,23 +221,23 @@ class ComprovantesPage(BasePage):
                 self.logger.info("  Comprovante enviado: %s", arquivo_comprovante)
 
             # --- Dados do Comprovante Bancário ---
-            forma_pag = safe_str(linha["Forma de Pagamento"])
+            forma_pag = despesa.forma_de_pagamento
             if forma_pag:
                 self.page.select_option("#tpFormaDePagamento", label=forma_pag)
                 self.logger.info("  Forma de Pagamento: %s", forma_pag)
 
-            data_pag = formatar_data_br(linha["Data do pagamento"])
+            data_pag = formatar_data_br(despesa.data_do_pagamento)
             if data_pag:
                 self.page.fill("#dtPagamento", data_pag)
                 self.logger.info("  Data do pagamento: %s", data_pag)
 
-            nr_doc = safe_str(linha["Nº Documento Pagamento"])
+            nr_doc = despesa.nr_documento_pagamento
             if nr_doc:
                 self.page.fill("#nrDocumentoDePagamento", nr_doc)
                 self.logger.info("  Nº Documento Pagamento: %s", nr_doc)
 
             # Valor: remove formatação → dígitos em centavos; 'type' aciona a máscara
-            valor_centavos = limpar_valor_monetario(linha["Valor"])
+            valor_centavos = limpar_valor_monetario(despesa.valor)
             if valor_centavos:
                 valor_field = self.page.locator("#vlComprovado")
                 valor_field.click(click_count=3)
@@ -253,7 +245,7 @@ class ComprovantesPage(BasePage):
                 self.logger.info("  Valor (centavos): %s", valor_centavos)
 
             # --- Justificativa ---
-            justif = safe_str(linha["Justificativa"])
+            justif = despesa.justificativa
             if justif:
                 self.page.fill("#dsJustificativa", justif)
                 self.logger.info("  Justificativa: %s...", justif[:40])
