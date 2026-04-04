@@ -1,10 +1,10 @@
 # Organização dos Dados
 
-Este documento descreve como o bot espera encontrar os arquivos necessários para a automação: o CSV com itens de custo e os PDFs de comprovantes.
+Este documento descreve como o bot espera encontrar os arquivos necessários para a automação: o CSV de despesas e os PDFs de comprovantes.
 
-## CSV com itens de custo
+## CSV de despesas
 
-O caminho do CSV é fornecido diretamente pelo usuário (via GUI, CLI ou variável de ambiente `ITENS_CSV`).
+O caminho do CSV é fornecido diretamente pelo usuário (via GUI, CLI ou variável de ambiente `DESPESAS_CSV`).
 
 O CSV deve estar codificado em **UTF-8** (com ou sem BOM) e conter as seguintes colunas:
 

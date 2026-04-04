@@ -34,7 +34,7 @@ class ComprovacaoFinanceiraPage(BasePage):
         else:
             self.logger.debug("Seção já aberta: %r", header.inner_text().strip())
 
-    def navegar_e_clicar_comprovar_item(
+    def encontrar_rubrica_e_clicar_comprovar_item(
         self,
         produto: str,
         etapa: str,

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 class BotWorker(QThread):
     """Thread para executar o bot sem travar a GUI"""
 
-    finished = Signal(int, int)  # itens_ok, total
+    finished = Signal(int, int)  # despesas_ok, total
     error = Signal(str)
 
     def __init__(self, bot: SalicBot):
@@ -43,8 +43,8 @@ class BotWorker(QThread):
 
     def run(self):
         try:
-            itens_ok, total = self.bot.executar()
-            self.finished.emit(itens_ok, total)
+            despesas_ok, total = self.bot.executar()
+            self.finished.emit(despesas_ok, total)
         except Exception as e:
             self.error.emit(str(e))
 
@@ -129,13 +129,13 @@ class MainWindow(QWidget):
         self.pronac_input.setPlaceholderText("Número do PRONAC")
         layout.addWidget(self.pronac_input)
 
-        # 4) CSV com itens de custo
-        layout.addWidget(self._label("CSV com itens de custo:"))
+        # 4) CSV de despesas
+        layout.addWidget(self._label("CSV de despesas:"))
         csv_layout = QHBoxLayout()
-        self.itens_csv_input = QLineEdit()
-        self.itens_csv_input.setPlaceholderText("Selecione o CSV com itens de custo")
-        self.itens_csv_input.setReadOnly(True)
-        csv_layout.addWidget(self.itens_csv_input)
+        self.despesas_csv_input = QLineEdit()
+        self.despesas_csv_input.setPlaceholderText("Selecione o CSV de despesas")
+        self.despesas_csv_input.setReadOnly(True)
+        csv_layout.addWidget(self.despesas_csv_input)
         btn_browse_csv = QPushButton("...")
         btn_browse_csv.setFixedWidth(36)
         btn_browse_csv.clicked.connect(self._selecionar_csv)
@@ -211,7 +211,7 @@ class MainWindow(QWidget):
 
         self.proponente_input.setText(self.config.get_for_gui("proponente"))
         self.pronac_input.setText(self.config.get_for_gui("pronac"))
-        self.itens_csv_input.setText(self.config.get_for_gui("itens_csv"))
+        self.despesas_csv_input.setText(self.config.get_for_gui("despesas_csv"))
         self.comprovantes_dir_input.setText(self.config.get_for_gui("comprovantes_dir"))
         self.cpf_input.setText(self.config.get_for_gui("cpf"))
         self.senha_input.setText(self.config.get_for_gui("senha"))
@@ -223,10 +223,10 @@ class MainWindow(QWidget):
 
     def _selecionar_csv(self):
         arquivo, _ = QFileDialog.getOpenFileName(
-            self, "Selecionar CSV com itens de custo", "", "CSV (*.csv)"
+            self, "Selecionar CSV de despesas", "", "CSV (*.csv)"
         )
         if arquivo:
-            self.itens_csv_input.setText(arquivo)
+            self.despesas_csv_input.setText(arquivo)
 
     def _selecionar_pasta_comprovantes(self):
         pasta = QFileDialog.getExistingDirectory(
@@ -239,7 +239,7 @@ class MainWindow(QWidget):
         # Validação
         proponente = self.proponente_input.text().strip()
         pronac_text = self.pronac_input.text().strip()
-        itens_csv = self.itens_csv_input.text().strip()
+        despesas_csv = self.despesas_csv_input.text().strip()
         comprovantes_dir = self.comprovantes_dir_input.text().strip()
         cpf = self.cpf_input.text().strip()
         senha = self.senha_input.text().strip()
@@ -254,8 +254,8 @@ class MainWindow(QWidget):
                 int(pronac_text)
             except ValueError:
                 erros.append("PRONAC deve ser numérico.")
-        if not itens_csv:
-            erros.append("CSV com itens de custo é obrigatório.")
+        if not despesas_csv:
+            erros.append("CSV de despesas é obrigatório.")
         if not comprovantes_dir:
             erros.append("Pasta de Comprovantes é obrigatória.")
         if not cpf:
@@ -278,7 +278,7 @@ class MainWindow(QWidget):
 
         # Salvar preferências no QSettings
         self.config.save_preferences(
-            mecanismo, proponente, pronac_text, itens_csv, comprovantes_dir
+            mecanismo, proponente, pronac_text, despesas_csv, comprovantes_dir
         )
 
         # Salvar credenciais no keyring se checkbox marcado
@@ -304,7 +304,7 @@ class MainWindow(QWidget):
             headless=headless,
             slow_mo=slow_mo,
             projeto=projeto,
-            itens_csv=itens_csv,
+            despesas_csv=despesas_csv,
             comprovantes_dir=comprovantes_dir,
             cpf=cpf,
             senha=senha,
@@ -320,49 +320,51 @@ class MainWindow(QWidget):
         self.worker.error.connect(self._on_error)
         self.worker.start()
 
-    def _on_finished(self, itens_ok: int, total: int):
+    def _on_finished(self, despesas_ok: int, total: int):
         self.btn_rodar.setEnabled(True)
         logs_path = str(Path(LOGS_DIR).resolve())
 
-        if itens_ok == total and total > 0:
+        if despesas_ok == total and total > 0:
             logger.info(
-                "Execução concluída com sucesso! (%d/%d itens incluídos)",
-                itens_ok,
+                "Execução concluída com sucesso! (%d/%d despesas incluídas)",
+                despesas_ok,
                 total,
             )
-            self.status_label.setText(f"Concluído: {itens_ok}/{total} itens OK")
+            self.status_label.setText(f"Concluído: {despesas_ok}/{total} despesas OK")
             self.status_label.setStyleSheet("font-family: monospace; color: green;")
             QMessageBox.information(
                 self,
                 "Concluído",
                 f"Execução concluída com sucesso!\n"
-                f"{itens_ok}/{total} itens incluídos.\n\n"
+                f"{despesas_ok}/{total} despesas incluídas.\n\n"
                 f"Logs: {logs_path}",
             )
-        elif itens_ok > 0:
+        elif despesas_ok > 0:
             logger.warning(
-                "Execução concluída com erros! (%d/%d itens incluídos)",
-                itens_ok,
+                "Execução concluída com erros! (%d/%d despesas incluídas)",
+                despesas_ok,
                 total,
             )
-            self.status_label.setText(f"Parcial: {itens_ok}/{total} itens OK")
+            self.status_label.setText(f"Parcial: {despesas_ok}/{total} despesas OK")
             self.status_label.setStyleSheet("font-family: monospace; color: orange;")
             QMessageBox.warning(
                 self,
                 "Concluído com erros",
                 f"Execução concluída com erros.\n"
-                f"{itens_ok}/{total} itens incluídos.\n\n"
+                f"{despesas_ok}/{total} despesas incluídas.\n\n"
                 f"Logs: {logs_path}",
             )
         else:
-            logger.error("Execução falhou! (%d/%d itens incluídos)", itens_ok, total)
-            self.status_label.setText(f"Falhou: {itens_ok}/{total}")
+            logger.error(
+                "Execução falhou! (%d/%d despesas incluídas)", despesas_ok, total
+            )
+            self.status_label.setText(f"Falhou: {despesas_ok}/{total}")
             self.status_label.setStyleSheet("font-family: monospace; color: red;")
             QMessageBox.critical(
                 self,
                 "Falha",
                 f"Execução falhou!\n"
-                f"{itens_ok}/{total} itens incluídos.\n\n"
+                f"{despesas_ok}/{total} despesas incluídas.\n\n"
                 f"Logs: {logs_path}",
             )
 

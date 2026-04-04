@@ -21,7 +21,7 @@ def _run_cli(args: argparse.Namespace) -> int:
     mecanismo = config.get_for_cli("mecanismo", args.mecanismo)
     proponente = config.get_for_cli("proponente", args.proponente)
     pronac = config.get_for_cli("pronac", args.pronac)
-    itens_csv = config.get_for_cli("itens_csv", args.itens_csv)
+    despesas_csv = config.get_for_cli("despesas_csv", args.despesas_csv)
     comprovantes_dir = config.get_for_cli("comprovantes_dir", args.comprovantes_dir)
     cpf = config.get_for_cli("cpf", args.cpf)
     senha = config.get_for_cli("senha", args.senha)
@@ -31,9 +31,9 @@ def _run_cli(args: argparse.Namespace) -> int:
         erros.append("Proponente é obrigatório (--proponente ou .env ou QSettings)")
     if not pronac:
         erros.append("PRONAC é obrigatório (--pronac ou .env ou QSettings)")
-    if not itens_csv:
+    if not despesas_csv:
         erros.append(
-            "CSV com itens de custo é obrigatório (--itens-csv ou .env ou QSettings)"
+            "CSV de despesas é obrigatório (--despesas-csv ou .env ou QSettings)"
         )
     if not comprovantes_dir:
         erros.append(
@@ -74,28 +74,32 @@ def _run_cli(args: argparse.Namespace) -> int:
         headless=headless,
         slow_mo=slow_mo,
         projeto=projeto,
-        itens_csv=itens_csv,
+        despesas_csv=despesas_csv,
         comprovantes_dir=comprovantes_dir,
         cpf=cpf,
         senha=senha,
         dry_run=args.dry,
     )
-    itens_ok, total = bot.executar()
+    despesas_ok, total = bot.executar()
 
     logger.info("=" * 60)
-    if itens_ok == total and total > 0:
+    if despesas_ok == total and total > 0:
         logger.info(
-            "Execução concluída com sucesso! (%d/%d itens incluídos)", itens_ok, total
+            "Execução concluída com sucesso! (%d/%d despesas incluídas)",
+            despesas_ok,
+            total,
         )
-    elif itens_ok > 0:
+    elif despesas_ok > 0:
         logger.warning(
-            "Execução concluída com erros! (%d/%d itens incluídos)", itens_ok, total
+            "Execução concluída com erros! (%d/%d despesas incluídas)",
+            despesas_ok,
+            total,
         )
     else:
-        logger.error("Execução falhou! (%d/%d itens incluídos)", itens_ok, total)
+        logger.error("Execução falhou! (%d/%d despesas incluídas)", despesas_ok, total)
     logger.info("=" * 60)
 
-    return 0 if itens_ok == total and total > 0 else 1
+    return 0 if despesas_ok == total and total > 0 else 1
 
 
 def main():
@@ -122,7 +126,7 @@ def main():
     )
     parser.add_argument("--pronac", default=None, help="PRONAC do projeto")
     parser.add_argument(
-        "--itens-csv", default=None, help="Caminho para o CSV com itens de custo"
+        "--despesas-csv", default=None, help="Caminho para o CSV de despesas"
     )
     parser.add_argument(
         "--comprovantes-dir", default=None, help="Pasta de comprovantes (PDFs)"

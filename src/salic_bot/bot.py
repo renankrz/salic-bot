@@ -29,7 +29,7 @@ class SalicBot:
         headless: bool = True,
         slow_mo: int = 0,
         projeto: Projeto = None,
-        itens_csv: str = None,
+        despesas_csv: str = None,
         comprovantes_dir: str = None,
         cpf: str = None,
         senha: str = None,
@@ -42,7 +42,7 @@ class SalicBot:
             headless: Se deve rodar sem interface gráfica
             slow_mo: Delay entre ações em ms (para debug)
             projeto: Dados do projeto a ser selecionado
-            itens_csv: Caminho para o CSV com itens de custo
+            despesas_csv: Caminho para o CSV de despesas
             comprovantes_dir: Caminho para a pasta de comprovantes
             cpf: CPF do usuário para login
             senha: Senha do usuário para login
@@ -52,7 +52,7 @@ class SalicBot:
         self.projeto_page: Page = None
         self.pagina_atual: Page = None
         self.projeto = projeto
-        self.itens_csv = itens_csv
+        self.despesas_csv = despesas_csv
         self.comprovantes_dir = comprovantes_dir
 
         self.cpf = cpf
@@ -168,9 +168,9 @@ class SalicBot:
 
         return sucesso
 
-    def processar_todos_itens(self) -> tuple[int, int]:
+    def processar_todas_despesas(self) -> tuple[int, int]:
         """
-        Lê todos os itens de custo do CSV e, para cada um:
+        Lê todas as despesas do CSV e, para cada uma:
           1. Navega até a rubrica correta e abre a página de Comprovantes.
           2. Abre o modal de Novo Comprovante.
           3. Preenche os campos com os dados do CSV.
@@ -179,8 +179,8 @@ class SalicBot:
           6. Volta para a página de Comprovação Financeira.
 
         Returns:
-            Tupla (itens_ok, total) com a contagem de itens processados com
-            sucesso e o total de itens.
+            Tupla (despesas_ok, total) com a contagem de despesas processadas com
+            sucesso e o total de despesas.
         """
         if not self.projeto_page:
             raise RuntimeError(
@@ -189,9 +189,9 @@ class SalicBot:
             )
 
         try:
-            logger.info("CSV com itens de custo: %s", self.itens_csv)
-            despesas = ler_csv(self.itens_csv)
-            logger.info("Total de itens de custo: %d", len(despesas))
+            logger.info("CSV de despesas: %s", self.despesas_csv)
+            despesas = ler_csv(self.despesas_csv)
+            logger.info("Total de despesas: %d", len(despesas))
 
             logger.info("Pasta de comprovantes: %s", self.comprovantes_dir)
         except FileNotFoundError as e:
@@ -205,48 +205,51 @@ class SalicBot:
         comp_page = ComprovantesPage(self.projeto_page)
 
         total = len(despesas)
-        itens_ok = 0
-        itens_erro = 0
+        despesas_ok = 0
+        despesas_erro = 0
 
         for idx, despesa in enumerate(despesas):
-            numero_item = idx + 1
+            numero_despesa = idx + 1
             produto = despesa.produto
             etapa = despesa.etapa
             uf = despesa.uf
             cidade = despesa.cidade
             item_de_custo = despesa.item_de_custo
 
-            logger.info("─── Item %d/%d: %s ───", numero_item, total, item_de_custo)
+            logger.info(
+                "─── Despesa %d/%d: %s ───", numero_despesa, total, item_de_custo
+            )
 
             # 1. Navegar até a rubrica e abrir a página de Comprovantes
-            if not cf_page.navegar_e_clicar_comprovar_item(
+            if not cf_page.encontrar_rubrica_e_clicar_comprovar_item(
                 produto=produto,
                 etapa=etapa,
                 uf=uf,
                 cidade=cidade,
                 item_de_custo=item_de_custo,
             ):
-                logger.error("Falha ao navegar para o item %d", numero_item)
+                logger.error("Falha ao navegar para a despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
-                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_navegacao.png"
+                        SCREENSHOTS_DIR, f"erro_despesa_{numero_despesa}_navegacao.png"
                     ),
                     full_page=True,
                 )
-                itens_erro += 1
+                despesas_erro += 1
                 continue
 
             # 2. Abrir modal de Novo Comprovante
             if not comp_page.clicar_botao_adicionar():
-                logger.error("Falha ao abrir modal no item %d", numero_item)
+                logger.error("Falha ao abrir modal na despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
-                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_abrir_modal.png"
+                        SCREENSHOTS_DIR,
+                        f"erro_despesa_{numero_despesa}_abrir_modal.png",
                     ),
                     full_page=True,
                 )
                 comp_page.clicar_voltar()
-                itens_erro += 1
+                despesas_erro += 1
                 continue
 
             # 3. Preencher campos do modal
@@ -262,40 +265,42 @@ class SalicBot:
                     logger.info("PDF do comprovante: %s", arquivo_comprovante)
                 except FileNotFoundError as e:
                     logger.error(
-                        "Comprovante não encontrado para item %d: %s",
-                        numero_item,
+                        "Comprovante não encontrado para despesa %d: %s",
+                        numero_despesa,
                         e,
                     )
                     comp_page.clicar_cancelar_modal()
                     comp_page.clicar_voltar()
-                    itens_erro += 1
+                    despesas_erro += 1
                     continue
 
             if not comp_page.preencher_modal(
                 despesa, arquivo_comprovante=arquivo_comprovante
             ):
-                logger.error("Falha ao preencher modal no item %d", numero_item)
+                logger.error("Falha ao preencher modal na despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
-                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_preencher.png"
+                        SCREENSHOTS_DIR, f"erro_despesa_{numero_despesa}_preencher.png"
                     ),
                     full_page=True,
                 )
                 comp_page.clicar_cancelar_modal()
                 comp_page.clicar_voltar()
-                itens_erro += 1
+                despesas_erro += 1
                 continue
 
             # 4. Tirar screenshot
-            screenshot_path = os.path.join(SCREENSHOTS_DIR, f"item_{numero_item}.png")
+            screenshot_path = os.path.join(
+                SCREENSHOTS_DIR, f"despesa_{numero_despesa}.png"
+            )
             self.projeto_page.screenshot(path=screenshot_path, full_page=True)
             logger.info("Screenshot salvo: %s", screenshot_path)
 
             # 5. Salvar ou cancelar comprovante (dry run)
             if self.dry_run:
                 logger.info(
-                    "DRY RUN: cancelando item %d/%d (%s) em vez de salvar",
-                    numero_item,
+                    "DRY RUN: cancelando despesa %d/%d (%s) em vez de salvar",
+                    numero_despesa,
                     total,
                     item_de_custo,
                 )
@@ -309,18 +314,18 @@ class SalicBot:
                         in comp_page.ultimo_alert
                     ):
                         logger.error(
-                            "Item %d/%d (%s): justificativa obrigatória ausente. "
+                            "Despesa %d/%d (%s): justificativa obrigatória ausente. "
                             "O valor ultrapassa o permitido e o campo "
                             "Justificativa não foi preenchido.",
-                            numero_item,
+                            numero_despesa,
                             total,
                             item_de_custo,
                         )
                     else:
                         logger.error(
-                            "Item %d/%d (%s): erro desconhecido ao salvar. "
+                            "Despesa %d/%d (%s): erro desconhecido ao salvar. "
                             "Alert: %s",
-                            numero_item,
+                            numero_despesa,
                             total,
                             item_de_custo,
                             comp_page.ultimo_alert or "(sem alert)",
@@ -328,30 +333,30 @@ class SalicBot:
                     self.projeto_page.screenshot(
                         path=os.path.join(
                             SCREENSHOTS_DIR,
-                            f"erro_item_{numero_item}_salvar.png",
+                            f"erro_despesa_{numero_despesa}_salvar.png",
                         ),
                         full_page=True,
                     )
                     comp_page.clicar_cancelar_modal()
                     comp_page.clicar_voltar()
-                    itens_erro += 1
+                    despesas_erro += 1
                     continue
 
             # 6. Voltar para Comprovação Financeira
             if not comp_page.clicar_voltar():
-                logger.error("Falha ao voltar no item %d", numero_item)
+                logger.error("Falha ao voltar na despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
-                        SCREENSHOTS_DIR, f"erro_item_{numero_item}_voltar.png"
+                        SCREENSHOTS_DIR, f"erro_despesa_{numero_despesa}_voltar.png"
                     ),
                     full_page=True,
                 )
-                itens_erro += 1
+                despesas_erro += 1
                 continue
 
-            itens_ok += 1
+            despesas_ok += 1
 
-        return (itens_ok, total)
+        return (despesas_ok, total)
 
     def abrir_novo_comprovante(self) -> bool:
         """
@@ -450,9 +455,9 @@ class SalicBot:
         """Executa fluxo completo do bot.
 
         Returns:
-            Tupla (itens_ok, total) com a contagem de itens processados
-            com sucesso e o total de itens. Retorna (0, 0) em caso de
-            falha antes do processamento de itens.
+            Tupla (despesas_ok, total) com a contagem de despesas processadas
+            com sucesso e o total de despesas. Retorna (0, 0) em caso de
+            falha antes do processamento de despesas.
         """
         try:
             self.iniciar()
@@ -473,12 +478,12 @@ class SalicBot:
                 logger.error("Falha ao navegar para Comprovação Financeira")
                 return (0, 0)
 
-            itens_ok, total = self.processar_todos_itens()
+            despesas_ok, total = self.processar_todas_despesas()
 
             if not self.fazer_logout():
                 logger.error("Falha ao realizar logout")
 
-            return (itens_ok, total)
+            return (despesas_ok, total)
 
         except Exception as e:
             logger.error("Erro na execução: %s", e, exc_info=True)
