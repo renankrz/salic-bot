@@ -111,7 +111,7 @@ def _salvar_csv(df: pd.DataFrame, csv_path: str | Path) -> None:
         lambda v: "TRUE" if (not pd.isna(v) and v) else "FALSE"
     )
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")
-    logger.info("CSV atualizado: %s", csv_path)
+    logger.info("CSV atualizado")
 
 
 class PlanilhaDespesas:

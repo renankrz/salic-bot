@@ -218,7 +218,7 @@ class ComprovantesPage(BasePage):
             if arquivo_comprovante:
                 file_input = self.page.locator("#test1 input[type='file']#arquivo")
                 file_input.set_input_files(arquivo_comprovante)
-                self.logger.info("  Comprovante enviado: %s", arquivo_comprovante)
+                self.logger.info("  Comprovante enviado")
 
             # --- Dados do Comprovante Bancário ---
             forma_pag = despesa.forma_de_pagamento

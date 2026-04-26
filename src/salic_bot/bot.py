@@ -70,7 +70,6 @@ class SalicBot:
         logger.info("Iniciando Salic Bot...")
         self.page = self.browser_manager.start()
         self.pagina_atual = self.page
-        logger.info("Navegador iniciado")
 
     def fazer_login(self) -> bool:
         """
@@ -87,9 +86,7 @@ class SalicBot:
 
         sucesso = login_page.fazer_login(self.cpf, self.senha)
 
-        if sucesso:
-            logger.info("Login realizado com sucesso!")
-        else:
+        if not sucesso:
             logger.error("Falha no login")
 
         return sucesso
@@ -107,9 +104,7 @@ class SalicBot:
         inicio_page = InicioPage(self.page)
         sucesso = inicio_page.navegar_para_listar_projetos()
 
-        if sucesso:
-            logger.info("Navegação para projetos realizada com sucesso!")
-        else:
+        if not sucesso:
             logger.error("Falha ao navegar para projetos")
 
         return sucesso
@@ -139,7 +134,6 @@ class SalicBot:
         if nova_pagina:
             self.projeto_page = nova_pagina
             self.pagina_atual = nova_pagina
-            logger.info("Projeto selecionado com sucesso!")
             return True
         else:
             logger.error("Falha ao selecionar projeto")
@@ -162,11 +156,7 @@ class SalicBot:
         projeto_page = ProjetoPage(self.projeto_page)
         sucesso = projeto_page.clicar_comprovacao_financeira()
 
-        if sucesso:
-            logger.info(
-                "Navegação para 'Comprovação Financeira' realizada com sucesso!"
-            )
-        else:
+        if not sucesso:
             logger.error("Falha ao navegar para 'Comprovação Financeira'")
 
         return sucesso
@@ -277,7 +267,6 @@ class SalicBot:
                         self.comprovantes_dir, data_emissao, numero_nf
                     )
                     arquivo_comprovante = str(pdf_path)
-                    logger.info("PDF do comprovante: %s", arquivo_comprovante)
                 except FileNotFoundError as e:
                     msg = str(e)
                     logger.error(
@@ -468,18 +457,14 @@ class SalicBot:
 
         sucesso = BasePage(self.pagina_atual).fazer_logout()
 
-        if sucesso:
-            logger.info("Logout realizado com sucesso!")
-        else:
+        if not sucesso:
             logger.error("Falha ao realizar logout")
 
         return sucesso
 
     def fechar(self):
         """Fecha o navegador"""
-        logger.info("Fechando navegador...")
         self.browser_manager.close()
-        logger.info("Navegador fechado")
 
     def _marcar_todas_despesas_erro(self, mensagem: str) -> None:
         """Marca todas as despesas do CSV como não incluídas e registra o erro.
