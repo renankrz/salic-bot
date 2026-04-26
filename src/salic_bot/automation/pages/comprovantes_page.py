@@ -4,7 +4,7 @@ import os
 
 from playwright.sync_api import Page
 
-from ...models.despesa import DespesaCSV
+from ...models.despesa import Despesa
 from ...paths import SCREENSHOTS_DIR
 from ...utils.formatters import formatar_data_br, limpar_ni, limpar_valor_monetario
 from ..base_page import BasePage
@@ -142,7 +142,7 @@ class ComprovantesPage(BasePage):
             return False
 
     def preencher_modal(
-        self, despesa: DespesaCSV, arquivo_comprovante: str = None
+        self, despesa: Despesa, arquivo_comprovante: str = None
     ) -> bool:
         """Preenche os campos do modal de Novo Comprovante com dados de uma despesa.
 

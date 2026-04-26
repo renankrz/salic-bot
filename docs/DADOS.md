@@ -26,10 +26,41 @@ O CSV deve estar codificado em **UTF-8** (com ou sem BOM) e conter as seguintes 
 | Nº Documento Pagamento | Número do documento de pagamento | `11005` |
 | Valor | Valor pago (formato brasileiro) | `R$ 2.200,00` |
 | Justificativa | Justificativa (obrigatória quando o valor ultrapassa o permitido) | |
+| incluída | Se a despesa já foi incluída no Salic (opcional) | `TRUE` |
+| erro | Mensagem de erro da última execução (opcional) | |
 
 **Observação:** Os nomes das colunas não diferenciam maiúsculas de minúsculas (case-insensitive).
 
 > Por exemplo, `Produto`, `produto` ou `PRODUTO` serão reconhecidos da mesma forma.
+
+### Colunas de controle: `incluída` e `erro`
+
+As colunas `incluída` e `erro` são opcionais no CSV de entrada. Se não estiverem presentes, o sistema as gera automaticamente (com `FALSE` e vazio, respectivamente).
+
+- **incluída**: indica se a despesa já foi incluída com sucesso no Salic. Despesas marcadas como `TRUE` são puladas em execuções subsequentes, permitindo retomar o processamento após falhas parciais.
+- **erro**: registra a mensagem de erro da última execução, caso a despesa não tenha sido incluída. Quando `incluída` é `TRUE`, a coluna `erro` fica vazia.
+
+Após cada execução, o bot sobrescreve o CSV de entrada com os resultados atualizados.
+
+#### Leitura da coluna `incluída`
+
+O bot aceita diversos formatos booleanos para compatibilidade com Google Sheets, Calc e Excel:
+
+| Formato | Valor |
+|---|---|
+| `TRUE` / `FALSE` | Padrão (Google Sheets, Excel, Calc) |
+| `True` / `False` | pandas / Python |
+| `VERDADEIRO` / `FALSO` | Google Sheets (pt-BR) |
+| `SIM` / `NÃO` | Português |
+| `YES` / `NO` | Inglês |
+| `1` / `0` | Numérico |
+| *(vazio)* | Tratado como `FALSE` |
+
+Valores não reconhecidos (ex: `talvez`) geram erro individual para a despesa correspondente.
+
+#### Escrita da coluna `incluída`
+
+O bot escreve `TRUE` / `FALSE` (maiúsculo) na saída, que é o formato reconhecido nativamente como booleano pelo Google Sheets, Calc e Excel.
 
 ## Pasta de comprovantes (PDFs)
 

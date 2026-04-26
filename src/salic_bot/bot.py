@@ -17,7 +17,7 @@ from .automation.pages.projeto_page import ProjetoPage
 from .automation.pages.projetos_page import ProjetosPage
 from .models.projeto import Projeto
 from .paths import SCREENSHOTS_DIR
-from .utils.csv_tools import ler_csv
+from .utils.csv_tools import PlanilhaDespesas
 from .utils.drive_manager import localizar_comprovante
 
 
@@ -46,6 +46,7 @@ class SalicBot:
             comprovantes_dir: Caminho para a pasta de comprovantes
             cpf: CPF do usuário para login
             senha: Senha do usuário para login
+            dry_run: Se True, cancela em vez de salvar cada comprovante
         """
         self.browser_manager = BrowserManager(headless=headless, slow_mo=slow_mo)
         self.page: Page = None
@@ -58,6 +59,8 @@ class SalicBot:
         self.cpf = cpf
         self.senha = senha
         self.dry_run = dry_run
+
+        self.planilha: PlanilhaDespesas | None = None
 
         if not self.cpf or not self.senha:
             raise ValueError("cpf e senha são obrigatórios")
@@ -170,17 +173,24 @@ class SalicBot:
 
     def processar_todas_despesas(self) -> tuple[int, int]:
         """
-        Lê todas as despesas do CSV e, para cada uma:
-          1. Navega até a rubrica correta e abre a página de Comprovantes.
-          2. Abre o modal de Novo Comprovante.
-          3. Preenche os campos com os dados do CSV.
-          4. Aguarda 5 segundos e tira um screenshot nomeado sequencialmente.
-          5. Cancela o modal.
-          6. Volta para a página de Comprovação Financeira.
+        Processa as despesas previamente carregadas em ``self.planilha``.
+        Para cada despesa não incluída:
+
+          1. Verifica se já foi incluída ou tem valor inválido na coluna
+             ``incluída``.
+          2. Navega até a rubrica correta e abre a página de Comprovantes.
+          3. Abre o modal de Novo Comprovante.
+          4. Preenche os campos com os dados do CSV.
+          5. Tira um screenshot nomeado sequencialmente.
+          6. Salva ou cancela (dry run) o comprovante.
+          7. Volta para a página de Comprovação Financeira.
+
+        Ao final, salva o CSV atualizado com os resultados (``incluída``
+        e ``erro``).
 
         Returns:
-            Tupla (despesas_ok, total) com a contagem de despesas processadas com
-            sucesso e o total de despesas.
+            Tupla (despesas_ok, total) com a contagem de despesas incluídas
+            com sucesso (incluindo as previamente incluídas) e o total.
         """
         if not self.projeto_page:
             raise RuntimeError(
@@ -188,27 +198,14 @@ class SalicBot:
                 "Chame selecionar_projeto() primeiro."
             )
 
-        try:
-            logger.info("CSV de despesas: %s", self.despesas_csv)
-            despesas = ler_csv(self.despesas_csv)
-            logger.info("Total de despesas: %d", len(despesas))
-
-            logger.info("Pasta de comprovantes: %s", self.comprovantes_dir)
-        except FileNotFoundError as e:
-            logger.error("Arquivo não encontrado: %s", e)
-            return (0, 0)
-        except Exception as e:
-            logger.error("Erro ao carregar dados financeiros: %s", e)
-            return (0, 0)
-
         cf_page = ComprovacaoFinanceiraPage(self.projeto_page)
         comp_page = ComprovantesPage(self.projeto_page)
 
-        total = len(despesas)
+        planilha = self.planilha
+        total = len(planilha)
         despesas_ok = 0
-        despesas_erro = 0
 
-        for idx, despesa in enumerate(despesas):
+        for idx, despesa in enumerate(planilha.despesas):
             numero_despesa = idx + 1
             produto = despesa.produto
             etapa = despesa.etapa
@@ -220,6 +217,19 @@ class SalicBot:
                 "─── Despesa %d/%d: %s ───", numero_despesa, total, item_de_custo
             )
 
+            # Verificar coluna "incluída"
+            try:
+                if planilha.ja_incluida(idx):
+                    logger.info(
+                        "Despesa %d/%d já incluída, pulando", numero_despesa, total
+                    )
+                    despesas_ok += 1
+                    continue
+            except ValueError as e:
+                logger.error(str(e))
+                planilha.marcar_erro(idx, str(e))
+                continue
+
             # 1. Navegar até a rubrica e abrir a página de Comprovantes
             if not cf_page.encontrar_rubrica_e_clicar_comprovar_item(
                 produto=produto,
@@ -228,6 +238,10 @@ class SalicBot:
                 cidade=cidade,
                 item_de_custo=item_de_custo,
             ):
+                msg = (
+                    f"Rubrica não encontrada: {produto} / {etapa} / {uf} / "
+                    f"{cidade} / {item_de_custo}"
+                )
                 logger.error("Falha ao navegar para a despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
@@ -235,11 +249,12 @@ class SalicBot:
                     ),
                     full_page=True,
                 )
-                despesas_erro += 1
+                planilha.marcar_erro(idx, msg)
                 continue
 
             # 2. Abrir modal de Novo Comprovante
             if not comp_page.clicar_botao_adicionar():
+                msg = "Falha ao abrir modal de novo comprovante"
                 logger.error("Falha ao abrir modal na despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
@@ -249,7 +264,7 @@ class SalicBot:
                     full_page=True,
                 )
                 comp_page.clicar_voltar()
-                despesas_erro += 1
+                planilha.marcar_erro(idx, msg)
                 continue
 
             # 3. Preencher campos do modal
@@ -264,6 +279,7 @@ class SalicBot:
                     arquivo_comprovante = str(pdf_path)
                     logger.info("PDF do comprovante: %s", arquivo_comprovante)
                 except FileNotFoundError as e:
+                    msg = str(e)
                     logger.error(
                         "Comprovante não encontrado para despesa %d: %s",
                         numero_despesa,
@@ -271,12 +287,13 @@ class SalicBot:
                     )
                     comp_page.clicar_cancelar_modal()
                     comp_page.clicar_voltar()
-                    despesas_erro += 1
+                    planilha.marcar_erro(idx, msg)
                     continue
 
             if not comp_page.preencher_modal(
                 despesa, arquivo_comprovante=arquivo_comprovante
             ):
+                msg = "Falha ao preencher formulário do comprovante"
                 logger.error("Falha ao preencher modal na despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
@@ -286,7 +303,7 @@ class SalicBot:
                 )
                 comp_page.clicar_cancelar_modal()
                 comp_page.clicar_voltar()
-                despesas_erro += 1
+                planilha.marcar_erro(idx, msg)
                 continue
 
             # 4. Tirar screenshot
@@ -313,22 +330,28 @@ class SalicBot:
                         and ComprovantesPage.ALERT_JUSTIFICATIVA
                         in comp_page.ultimo_alert
                     ):
+                        msg = (
+                            "Justificativa obrigatória ausente: o valor ultrapassa "
+                            "o permitido e o campo Justificativa não foi preenchido"
+                        )
                         logger.error(
-                            "Despesa %d/%d (%s): justificativa obrigatória ausente. "
-                            "O valor ultrapassa o permitido e o campo "
-                            "Justificativa não foi preenchido.",
+                            "Despesa %d/%d (%s): %s",
                             numero_despesa,
                             total,
                             item_de_custo,
+                            msg,
                         )
                     else:
+                        msg = (
+                            f"Erro ao salvar comprovante: "
+                            f"{comp_page.ultimo_alert or 'erro desconhecido'}"
+                        )
                         logger.error(
-                            "Despesa %d/%d (%s): erro desconhecido ao salvar. "
-                            "Alert: %s",
+                            "Despesa %d/%d (%s): %s",
                             numero_despesa,
                             total,
                             item_de_custo,
-                            comp_page.ultimo_alert or "(sem alert)",
+                            msg,
                         )
                     self.projeto_page.screenshot(
                         path=os.path.join(
@@ -339,11 +362,12 @@ class SalicBot:
                     )
                     comp_page.clicar_cancelar_modal()
                     comp_page.clicar_voltar()
-                    despesas_erro += 1
+                    planilha.marcar_erro(idx, msg)
                     continue
 
             # 6. Voltar para Comprovação Financeira
             if not comp_page.clicar_voltar():
+                msg = "Falha ao voltar para página de comprovação financeira"
                 logger.error("Falha ao voltar na despesa %d", numero_despesa)
                 self.projeto_page.screenshot(
                     path=os.path.join(
@@ -351,10 +375,16 @@ class SalicBot:
                     ),
                     full_page=True,
                 )
-                despesas_erro += 1
+                planilha.marcar_erro(idx, msg)
                 continue
 
+            # Sucesso
+            if not self.dry_run:
+                planilha.marcar_incluida(idx)
             despesas_ok += 1
+
+        # Salvar CSV com resultados
+        planilha.salvar()
 
         return (despesas_ok, total)
 
@@ -451,32 +481,68 @@ class SalicBot:
         self.browser_manager.close()
         logger.info("Navegador fechado")
 
+    def _marcar_todas_despesas_erro(self, mensagem: str) -> None:
+        """Marca todas as despesas do CSV como não incluídas e registra o erro.
+
+        Salva o CSV atualizado em disco.
+
+        Args:
+            mensagem: Mensagem de erro a ser registrada em todas as linhas.
+        """
+        self.planilha.marcar_todas_erro(mensagem)
+        self.planilha.salvar()
+
     def executar(self) -> tuple[int, int]:
         """Executa fluxo completo do bot.
 
+        Lê o CSV de despesas antes de iniciar a navegação, de modo que
+        erros gerais (login, navegação, etc.) possam ser registrados em
+        todas as linhas do CSV.
+
         Returns:
-            Tupla (despesas_ok, total) com a contagem de despesas processadas
-            com sucesso e o total de despesas. Retorna (0, 0) em caso de
-            falha antes do processamento de despesas.
+            Tupla (despesas_ok, total) com a contagem de despesas incluídas
+            com sucesso e o total de despesas. Retorna (0, 0) quando o CSV
+            não pôde ser lido.
         """
         try:
+            # Ler CSV antes de tudo para poder registrar erros gerais
+            try:
+                logger.info("CSV de despesas: %s", self.despesas_csv)
+                self.planilha = PlanilhaDespesas(self.despesas_csv)
+                logger.info("Total de despesas: %d", len(self.planilha))
+                logger.info("Pasta de comprovantes: %s", self.comprovantes_dir)
+            except FileNotFoundError as e:
+                logger.error("Arquivo não encontrado: %s", e)
+                return (0, 0)
+            except Exception as e:
+                logger.error("Erro ao carregar dados financeiros: %s", e)
+                return (0, 0)
+
             self.iniciar()
 
             if not self.fazer_login():
+                msg = "Falha no login"
                 logger.error("Falha na execução do bot")
-                return (0, 0)
+                self._marcar_todas_despesas_erro(msg)
+                return (0, len(self.planilha))
 
             if not self.navegar_para_projetos():
-                logger.error("Falha ao navegar para projetos")
-                return (0, 0)
+                msg = "Falha ao navegar para projetos"
+                logger.error(msg)
+                self._marcar_todas_despesas_erro(msg)
+                return (0, len(self.planilha))
 
             if not self.selecionar_projeto():
-                logger.error("Falha ao selecionar projeto")
-                return (0, 0)
+                msg = "Falha ao selecionar projeto"
+                logger.error(msg)
+                self._marcar_todas_despesas_erro(msg)
+                return (0, len(self.planilha))
 
             if not self.navegar_para_comprovacao_financeira():
-                logger.error("Falha ao navegar para Comprovação Financeira")
-                return (0, 0)
+                msg = "Falha ao navegar para Comprovação Financeira"
+                logger.error(msg)
+                self._marcar_todas_despesas_erro(msg)
+                return (0, len(self.planilha))
 
             despesas_ok, total = self.processar_todas_despesas()
 
@@ -487,6 +553,8 @@ class SalicBot:
 
         except Exception as e:
             logger.error("Erro na execução: %s", e, exc_info=True)
+            if self.planilha is not None:
+                self._marcar_todas_despesas_erro(str(e))
             if self.projeto_page:
                 self.projeto_page.screenshot(
                     path=os.path.join(SCREENSHOTS_DIR, "erro_execucao_projeto.png"),
@@ -496,7 +564,8 @@ class SalicBot:
                 self.page.screenshot(
                     path=os.path.join(SCREENSHOTS_DIR, "erro_execucao.png")
                 )
-            return (0, 0)
+            total = len(self.planilha) if self.planilha else 0
+            return (0, total)
 
         finally:
             self.fechar()

@@ -30,7 +30,7 @@ COLUNAS_ESPERADAS: set[str] = set(_COLUNA_PARA_CAMPO.keys())
 
 
 @dataclass
-class DespesaCSV:
+class Despesa:
     """Representa uma linha do CSV de despesas, com campos já limpos."""
 
     produto: str
@@ -51,8 +51,8 @@ class DespesaCSV:
     justificativa: str
 
     @classmethod
-    def from_series(cls, series) -> DespesaCSV:
-        """Cria uma DespesaCSV a partir de uma pandas Series com colunas normalizadas.
+    def from_series(cls, series) -> Despesa:
+        """Cria uma Despesa a partir de uma pandas Series com colunas normalizadas.
 
         Cada valor é convertido para string limpa (NaN → "").
         """

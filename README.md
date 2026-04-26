@@ -2,6 +2,8 @@
 
 Bot para automação de prestação de contas no sistema [Salic](https://salic.cultura.gov.br). Usa [Playwright](https://playwright.dev/python/) para navegar pelo site, ler dados de um CSV de despesas e cadastrar comprovantes de despesa automaticamente, incluindo upload dos PDFs correspondentes.
 
+O bot rastreia o progresso diretamente no CSV: despesas incluídas com sucesso são marcadas como `TRUE` na coluna `incluída`, e eventuais erros são registrados na coluna `erro`. Isso permite retomar o processamento após falhas parciais sem reprocessar despesas já incluídas.
+
 Para detalhes sobre como organizar o CSV de despesas e a pasta de comprovantes, veja [docs/DADOS.md](docs/DADOS.md).
 
 ## Uso
