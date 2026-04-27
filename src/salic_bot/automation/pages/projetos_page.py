@@ -1,6 +1,7 @@
 """Page Object para a tela de Projetos do Salic"""
 
 import os
+import re
 
 from playwright.sync_api import Page
 
@@ -33,40 +34,32 @@ class ProjetosPage(BasePage):
     # Helpers internos
     # ------------------------------------------------------------------
 
-    def _normalizar(self, texto: str) -> str:
-        return texto.strip().lower()
-
     def _selecionar_vuetify_dropdown(self, slot_selector: str, valor_alvo: str):
         """
         Abre um dropdown Vuetify clicando no .v-input__slot e escolhe a opção
         cujo texto contém `valor_alvo` (comparação case-insensitive e com trim).
-        """
-        alvo = self._normalizar(valor_alvo)
 
+        Usa o filtro nativo do Playwright (filter has_text) para garantir
+        compatibilidade entre Linux e Windows.
+        """
         # Clica no slot do campo para abrir o dropdown
         self.page.click(slot_selector)
 
         # Aguarda a lista ficar visível
         self.page.wait_for_selector(f"{self.DROPDOWN_ITEM}:visible", timeout=10000)
 
-        # Itera pelos itens visíveis e clica no que bater
-        items = self.page.locator(self.DROPDOWN_ITEM)
-        count = items.count()
+        # Filtra os itens pelo texto alvo (case-insensitive, substring)
+        pattern = re.compile(re.escape(valor_alvo), re.IGNORECASE)
+        candidatos = self.page.locator(self.DROPDOWN_ITEM).filter(has_text=pattern)
 
-        for i in range(count):
-            item = items.nth(i)
-            texto = self._normalizar(item.inner_text())
-            if alvo in texto:
-                item.click()
-                self.page.wait_for_selector(
-                    self.DROPDOWN_ITEM, state="hidden", timeout=5000
-                )
-                return
+        if candidatos.count() == 0:
+            raise ValueError(
+                f"Opção contendo '{valor_alvo}' não encontrada no dropdown "
+                f"(seletor: {slot_selector})"
+            )
 
-        raise ValueError(
-            f"Opção contendo '{valor_alvo}' não encontrada no dropdown "
-            f"(seletor: {slot_selector})"
-        )
+        candidatos.first.click()
+        self.page.wait_for_selector(self.DROPDOWN_ITEM, state="hidden", timeout=5000)
 
     # ------------------------------------------------------------------
     # Ações públicas
@@ -90,28 +83,33 @@ class ProjetosPage(BasePage):
         """
         Na tabela de resultados, clica no link do PRONAC correspondente.
         A página do projeto é aberta em nova aba; retorna o objeto Page dela.
+
+        Usa o filtro nativo do Playwright (filter has_text com regex de
+        correspondência exata) para garantir compatibilidade.
         """
         pronac_str = str(pronac).strip()
         self.logger.info("Clicando no PRONAC: %s", pronac_str)
 
-        # Links de PRONAC na tabela — filtra pelo texto exato
-        links_pronac = self.page.locator('td a[title="Visualizar Projeto"]')
-
+        # Aguarda ao menos um link de PRONAC ficar visível na tabela
         self.page.wait_for_selector('td a[title="Visualizar Projeto"]', timeout=15000)
 
-        count = links_pronac.count()
-        for i in range(count):
-            link = links_pronac.nth(i)
-            texto = self._normalizar(link.inner_text())
-            if texto == self._normalizar(pronac_str):
-                # Captura a nova aba aberta pelo clique
-                with self.page.context.expect_page() as nova_pagina_info:
-                    link.click()
-                nova_pagina = nova_pagina_info.value
-                nova_pagina.wait_for_load_state("networkidle")
-                return nova_pagina
+        # Filtra pelo texto exato do PRONAC, ignorando espaços em branco ao redor
+        pattern = re.compile(rf"^\s*{re.escape(pronac_str)}\s*$")
+        link = self.page.locator('td a[title="Visualizar Projeto"]').filter(
+            has_text=pattern
+        )
 
-        raise ValueError(f"PRONAC '{pronac_str}' não encontrado na tabela de projetos")
+        if link.count() == 0:
+            raise ValueError(
+                f"PRONAC '{pronac_str}' não encontrado na tabela de projetos"
+            )
+
+        # Captura a nova aba aberta pelo clique (target="_blank")
+        with self.page.context.expect_page() as nova_pagina_info:
+            link.first.click()
+        nova_pagina = nova_pagina_info.value
+        nova_pagina.wait_for_load_state("networkidle")
+        return nova_pagina
 
     def selecionar_projeto(self, projeto: Projeto):
         """
